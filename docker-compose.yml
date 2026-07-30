@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: inmobiliaria_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: tu_password_segura
+      POSTGRES_DB: inmobiliaria_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: inmobiliaria_backend
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: "postgresql://postgres:tu_password_segura@db:5432/inmobiliaria_db?schema=public"
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    container_name: inmobiliaria_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

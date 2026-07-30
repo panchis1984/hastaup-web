@@ -1,0 +1,41 @@
+// 1. Configuración del cliente y la base de datos
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// 2. Modelo de Usuario (Estructura rígida y segura)
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("USER") // "ADMIN" o "USER"
+  createdAt DateTime @default(now())
+}
+
+// 3. Modelo de Inmueble (Estructura híbrida con JSONB)
+model Property {
+  id        String   @id @default(uuid())
+  title     String
+  location  String
+  price     Float
+  type      String   // "Venta" o "Alquiler"
+  imageUrl  String
+  details   Json?    // { bedrooms: number, bathrooms: number }
+  featured  Boolean  @default(false) // <-- AGREGAR ESTO
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  phone     String?
+  message   String
+  createdAt DateTime @default(now())
+}
