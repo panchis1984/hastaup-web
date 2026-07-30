@@ -1,3 +1,4 @@
+// Build: 2026-07-30 — fuerza rebuild para tomar NEXT_PUBLIC_API_URL del entorno Railway
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
