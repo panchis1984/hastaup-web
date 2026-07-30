@@ -1,4 +1,4 @@
-# Etapa única — más simple para diagnosticar
+# ── Build Stage ─────────────────────────────────────────────
 FROM node:20-alpine
 
 WORKDIR /app
@@ -13,11 +13,12 @@ COPY . .
 
 RUN npx prisma generate
 
-# Compilar TypeScript
-RUN npm run build
+# Compilar TypeScript directamente (invalida el cache envenenado de nest build)
+# Muestra errores reales de TypeScript si los hay
+RUN npx tsc -p tsconfig.build.json --listEmittedFiles
 
-# ── VERIFICACIÓN: Si este paso falla, dist/ no se generó ──
-RUN ls -la /app/dist/main.js
+# Verificar que el archivo principal exista
+RUN test -f /app/dist/main.js || (echo "❌ dist/main.js no encontrado" && ls -la /app/dist/ 2>/dev/null && exit 1)
 
 EXPOSE 3001
 
