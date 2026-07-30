@@ -35,4 +35,5 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 3001
 
-CMD ["node", "dist/main.js"]
+# Ejecutamos las migraciones de Prisma y luego iniciamos la app
+CMD npx prisma migrate deploy && node dist/main.js
