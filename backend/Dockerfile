@@ -27,5 +27,5 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 3001
 
-# Ejecutamos las migraciones pasando explícitamente la variable de entorno y luego iniciamos
-CMD DATABASE_URL="$DATABASE_URL" npx prisma migrate deploy && node dist/main.js
+# Usamos sh -c para garantizar que la variable se inyecte correctamente al correr migrate deploy
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
