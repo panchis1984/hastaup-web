@@ -33,18 +33,14 @@ export default function LoginPage() {
         throw new Error(data.message || 'Error al iniciar sesión');
       }
 
-      // Guardamos los datos del usuario y el token JWT en el navegador
       localStorage.setItem('user', JSON.stringify(data.data));
       localStorage.setItem('token', data.accessToken);
 
-      // ─── REDIRECCIÓN SEGÚN EL ROL ───
       if (data.data.role === 'ADMIN') {
-        router.push('/admin'); // Si es Administrador va al panel de control
+        router.push('/admin');
       } else {
-        router.push('/inmuebles'); // Si es Usuario común va directo al catálogo
+        router.push('/inmuebles');
       }
-      // ────────────────────────────────
-
     } catch (err: any) {
       setStatus({ loading: false, error: err.message });
     }
@@ -65,8 +61,8 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               required
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -77,8 +73,8 @@ export default function LoginPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               required
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -87,8 +83,8 @@ export default function LoginPage() {
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={status.loading}
             className="w-full bg-blue-600 text-white font-medium py-2.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 mt-2"
           >
