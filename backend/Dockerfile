@@ -1,38 +1,23 @@
-# ── Etapa 1: Build ──────────────────────────────────────────
-FROM node:20-alpine AS builder
+# Etapa única — más simple para diagnosticar
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Instalar dependencias (todas, incluyendo devDependencies para compilar)
 COPY package*.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+
 RUN npm install
 
-# Copiar el schema de Prisma y generar el cliente
-COPY prisma ./prisma
-COPY prisma.config.ts ./
+COPY . .
+
 RUN npx prisma generate
 
-# Copiar el resto del código y compilar TypeScript → dist/
-COPY . .
+# Compilar TypeScript
 RUN npm run build
 
-# ── Etapa 2: Runtime ─────────────────────────────────────────
-FROM node:20-alpine AS runner
-
-WORKDIR /app
-
-# Solo dependencias de producción
-COPY package*.json ./
-RUN npm install --omit=dev
-
-# Copiar el cliente de Prisma generado y el schema
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY prisma ./prisma
-COPY prisma.config.ts ./
-
-# Copiar el build compilado
-COPY --from=builder /app/dist ./dist
+# ── VERIFICACIÓN: Si este paso falla, dist/ no se generó ──
+RUN ls -la /app/dist/main.js
 
 EXPOSE 3001
 
