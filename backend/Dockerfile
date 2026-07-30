@@ -27,5 +27,4 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 3001
 
-# Usamos sh -c para garantizar que la variable se inyecte correctamente al correr migrate deploy
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "DATABASE_URL=$DATABASE_URL npx prisma migrate deploy && node dist/main.js"]
