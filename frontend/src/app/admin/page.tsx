@@ -48,6 +48,13 @@ export default function AdminDashboard() {
     };
   };
 
+  // Redirige al login si el token expiró (respuesta 401 del backend)
+  const handleUnauthorized = useCallback(() => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    router.push('/login');
+  }, [router]);
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -55,6 +62,12 @@ export default function AdminDashboard() {
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/properties`),
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/contact`, { headers: getAuthHeaders() }),
       ]);
+
+      // Si el token expiró (7 días), redirigir al login automáticamente
+      if (msgRes.status === 401) {
+        handleUnauthorized();
+        return;
+      }
 
       const propData = await propRes.json();
       const msgData = await msgRes.json();
@@ -67,7 +80,7 @@ export default function AdminDashboard() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [handleUnauthorized]);
 
   // Verificar autenticación y rol de Administrador
   useEffect(() => {
@@ -127,6 +140,7 @@ export default function AdminDashboard() {
         body: JSON.stringify(payload),
       });
 
+      if (res.status === 401) { handleUnauthorized(); return; }
       if (!res.ok) throw new Error('Error al guardar la propiedad');
 
       setFormStatus({ loading: false, error: '', success: true });
@@ -167,6 +181,7 @@ export default function AdminDashboard() {
             method: 'DELETE',
             headers: getAuthHeaders(),
           });
+          if (res.status === 401) { handleUnauthorized(); return; }
           if (!res.ok) throw new Error('No se pudo eliminar la propiedad');
           fetchData();
         } catch (err: any) {

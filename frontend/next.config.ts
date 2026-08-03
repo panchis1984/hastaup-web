@@ -9,9 +9,15 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'images.unsplash.com',
       },
-      // Cuando uses Cloudinary más adelante, agregaremos su hostname aquí
+      {
+        // Las imágenes de propiedades pueden venir de cualquier URL HTTPS
+        // que el admin cargue (Airbnb, portales inmobiliarios, etc.)
+        protocol: 'https',
+        hostname: '**',
+      },
     ],
   },
 };
 
 export default nextConfig;
+
