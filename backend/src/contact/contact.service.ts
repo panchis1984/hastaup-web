@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import * as nodemailer from 'nodemailer';
@@ -31,6 +31,19 @@ export class ContactService {
    * Retorna `true` si el envío fue exitoso, `false` si falló.
    * Nunca lanza excepción para no interrumpir el flujo principal.
    */
+  /**
+   * Escapa caracteres especiales HTML para prevenir XSS/HTML injection
+   * en el cuerpo del correo de notificación.
+   */
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   private async sendEmailNotification(dto: CreateContactDto): Promise<boolean> {
     try {
       const transporter = nodemailer.createTransport({
@@ -43,19 +56,25 @@ export class ContactService {
         },
       });
 
+      // Escapamos todos los valores del usuario antes de insertarlos en HTML
+      const name    = this.escapeHtml(dto.name);
+      const email   = this.escapeHtml(dto.email);
+      const phone   = dto.phone ? this.escapeHtml(dto.phone) : 'No especificado';
+      const message = this.escapeHtml(dto.message);
+
       await transporter.sendMail({
         from: `"Web Hasta Up" <${process.env.MAIL_USER}>`,
         to: process.env.MAIL_DESTINATION || process.env.MAIL_USER,
-        subject: `Nuevo mensaje de contacto de ${dto.name}`,
+        subject: `Nuevo mensaje de contacto de ${name}`,
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
             <h2 style="color: #2563eb;">¡Has recibido una nueva consulta!</h2>
-            <p><strong>Nombre:</strong> ${dto.name}</p>
-            <p><strong>Email:</strong> ${dto.email}</p>
-            <p><strong>Teléfono:</strong> ${dto.phone || 'No especificado'}</p>
+            <p><strong>Nombre:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Teléfono:</strong> ${phone}</p>
             <p><strong>Mensaje:</strong></p>
             <blockquote style="background: #f3f4f6; padding: 15px; border-left: 4px solid #2563eb; margin: 10px 0;">
-              ${dto.message}
+              ${message}
             </blockquote>
           </div>
         `,
