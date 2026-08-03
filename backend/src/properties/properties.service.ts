@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UpdatePropertyDto } from './dto/update-property.dto';
@@ -14,7 +14,7 @@ export class PropertiesService {
     });
   }
 
-  // Obtener todos los inmuebles con filtros opcionales
+  // Obtener todos los inmuebles
   async findAll(type?: string, search?: string) {
     const where: any = {};
 
@@ -33,23 +33,18 @@ export class PropertiesService {
 
     return this.prisma.property.findMany({
       where,
-      orderBy: { createdAt: 'desc' }, // UUIDs no son cronológicos — se ordena por fecha de creación
+      orderBy: { createdAt: 'desc' },
     });
   }
 
-  // Obtener un inmueble por su ID — lanza 404 si no existe
+  // Obtener un inmueble por su ID
   async findOne(id: string) {
     const property = await this.prisma.property.findUnique({ where: { id } });
-    if (!property) {
-      throw new NotFoundException(`Propiedad con id "${id}" no encontrada`);
-    }
+    if (!property) throw new NotFoundException('Propiedad no encontrada');
     return property;
   }
-
   // Actualizar una propiedad existente con los campos provistos (parcial)
   async update(id: string, updatePropertyDto: UpdatePropertyDto) {
-    // Verificar existencia antes de actualizar para devolver 404 limpio
-    await this.findOne(id);
     return this.prisma.property.update({
       where: { id },
       data: {
@@ -59,31 +54,33 @@ export class PropertiesService {
         type: updatePropertyDto.type,
         imageUrl: updatePropertyDto.imageUrl,
         details: updatePropertyDto.details,
-        // Nota: `featured` solo se modifica vía toggleFeatured para controlar el límite de 3
       },
     });
   }
-
-  // Eliminar una propiedad — lanza 404 si no existe
+  // Eliminar una propiedad
   async remove(id: string) {
-    await this.findOne(id); // Verificar existencia antes de eliminar
-    return this.prisma.property.delete({ where: { id } });
+    try {
+      return await this.prisma.property.delete({ where: { id } });
+    } catch (e: any) {
+      if (e?.code === 'P2025') throw new NotFoundException('Propiedad no encontrada');
+      throw e;
+    }
   }
-
-  // Obtener propiedades destacadas (hasta 3), rellena con recientes si hay menos
   async findFeatured() {
+    // Intentamos buscar las que tienen featured = true
     let featured = await this.prisma.property.findMany({
       where: { featured: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }, // Las más nuevas primero
     });
 
-    // Si hay menos de 3 destacadas, rellena con las más recientes
+    // Lógica de negocio: Si hay menos de 3 destacadas, 
+    // rellenamos con las últimas propiedades creadas hasta completar 3.
     if (featured.length < 3) {
       const needed = 3 - featured.length;
       const existingIds = featured.map((p) => p.id);
       const recent = await this.prisma.property.findMany({
         where: {
-          id: { notIn: existingIds },
+          id: { notIn: existingIds }, // No incluir las que ya son destacadas
           featured: false,
         },
         orderBy: { createdAt: 'desc' },
@@ -95,18 +92,25 @@ export class PropertiesService {
     return featured;
   }
 
-  // Alternar el estado de destacado (true/false) con límite de 3
+  // NUEVO: Alternar el estado de destacado (true/false)
   async toggleFeatured(id: string) {
     const currentlyFeaturedCount = await this.prisma.property.count({
       where: { featured: true },
     });
 
-    const property = await this.findOne(id); // Reutiliza findOne que ya lanza 404
+    const property = await this.prisma.property.findUnique({ where: { id } });
 
-    if (!property.featured && currentlyFeaturedCount >= 3) {
-      throw new BadRequestException('Ya hay 3 propiedades destacadas. Desmarca una primero.');
+    if (!property) {
+      throw new BadRequestException('Propiedad no encontrada');
     }
 
+    if (!property.featured) {
+      if (currentlyFeaturedCount >= 3) {
+        throw new BadRequestException('Ya hay 3 propiedades destacadas. Desmarca una primero.');
+      }
+    }
+
+    // El 'return' aquí es vital para que NestJS devuelva un JSON válido al cliente
     return this.prisma.property.update({
       where: { id },
       data: { featured: !property.featured },

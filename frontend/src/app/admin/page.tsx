@@ -48,13 +48,6 @@ export default function AdminDashboard() {
     };
   };
 
-  // Redirige al login si el token expiró (respuesta 401 del backend)
-  const handleUnauthorized = useCallback(() => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    router.push('/login');
-  }, [router]);
-
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -63,9 +56,11 @@ export default function AdminDashboard() {
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/contact`, { headers: getAuthHeaders() }),
       ]);
 
-      // Si el token expiró (7 días), redirigir al login automáticamente
+      // Si el token expiró, redirigir al login
       if (msgRes.status === 401) {
-        handleUnauthorized();
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        router.push('/login');
         return;
       }
 
@@ -80,7 +75,7 @@ export default function AdminDashboard() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handleUnauthorized]);
+  }, []);
 
   // Verificar autenticación y rol de Administrador
   useEffect(() => {
@@ -140,7 +135,6 @@ export default function AdminDashboard() {
         body: JSON.stringify(payload),
       });
 
-      if (res.status === 401) { handleUnauthorized(); return; }
       if (!res.ok) throw new Error('Error al guardar la propiedad');
 
       setFormStatus({ loading: false, error: '', success: true });
@@ -181,7 +175,6 @@ export default function AdminDashboard() {
             method: 'DELETE',
             headers: getAuthHeaders(),
           });
-          if (res.status === 401) { handleUnauthorized(); return; }
           if (!res.ok) throw new Error('No se pudo eliminar la propiedad');
           fetchData();
         } catch (err: any) {
@@ -213,6 +206,29 @@ export default function AdminDashboard() {
     setEditingId(null);
     setFormStatus({ loading: false, error: '', success: false });
     setForm({ title: '', location: '', price: '', type: 'Venta', imageUrl: '', bedrooms: '', bathrooms: '' });
+  };
+
+  // Confirmar eliminación de mensaje de contacto
+  const confirmDeleteMessage = (id: string) => {
+    setModalConfig({
+      isOpen: true,
+      title: 'Eliminar Mensaje',
+      message: '¿Estás seguro de que deseas eliminar este mensaje? Esta acción no se puede deshacer.',
+      confirmText: 'Sí, eliminar',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/contact/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+          });
+          if (!res.ok) throw new Error('No se pudo eliminar el mensaje');
+          fetchData();
+        } catch (err: any) {
+          alert(err.message);
+        }
+      },
+    });
   };
 
   if (!authorized) {
@@ -369,14 +385,28 @@ export default function AdminDashboard() {
             {/* PESTAÑA: MENSAJES */}
             {activeTab === 'messages' && (
               <div className="space-y-4">
+                {messages.length === 0 && (
+                  <div className="bg-white p-12 rounded-2xl text-center text-gray-400 border border-gray-100 text-sm">
+                    No hay mensajes de contacto todavía.
+                  </div>
+                )}
                 {messages.map((msg: any) => (
                   <div key={msg.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                       <div>
                         <h3 className="font-bold text-gray-900 text-lg">{msg.name}</h3>
                         <p className="text-xs text-gray-400">Email: <span className="text-blue-600 font-medium">{msg.email}</span></p>
+                        {msg.phone && <p className="text-xs text-gray-400">Tel: <span className="font-medium text-gray-600">{msg.phone}</span></p>}
                       </div>
-                      <span className="text-xs text-gray-400">{new Date(msg.createdAt).toLocaleDateString()}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-400">{new Date(msg.createdAt).toLocaleDateString()}</span>
+                        <button
+                          onClick={() => confirmDeleteMessage(msg.id)}
+                          className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-lg text-xs transition-colors"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
                     </div>
                     <p className="text-gray-700 bg-gray-50 p-4 rounded-xl text-sm leading-relaxed border border-gray-100">
                       {msg.message}

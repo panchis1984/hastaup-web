@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { ContactService } from './contact.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -18,5 +18,12 @@ export class ContactController {
   @Get()
   findAll() {
     return this.contactService.findAll();
+  }
+
+  // Ruta protegida: solo el admin puede eliminar mensajes
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.contactService.remove(id);
   }
 }

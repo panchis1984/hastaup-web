@@ -132,4 +132,16 @@ export class ContactService {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  async remove(id: string) {
+    try {
+      return await this.prisma.contactMessage.delete({ where: { id } });
+    } catch (e: any) {
+      if (e?.code === 'P2025') {
+        const { NotFoundException } = await import('@nestjs/common');
+        throw new NotFoundException('Mensaje no encontrado');
+      }
+      throw e;
+    }
+  }
 }
