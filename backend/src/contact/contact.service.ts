@@ -8,29 +8,29 @@ export class ContactService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createContactDto: CreateContactDto) {
-    // 1. Guardar el mensaje en la base de datos (Neon.tech)
+    // 1. Guardar el mensaje en la base de datos
     const newContact = await this.prisma.contactMessage.create({
       data: createContactDto,
     });
 
-    // 2. Enviar el correo electrónico de notificación.
-    // Si falla, se registra el error pero NO se lanza excepción:
-    // el mensaje ya fue guardado, así que la operación principal tuvo éxito.
-    const emailSent = await this.sendEmailNotification(createContactDto);
+    // 2. Disparar el email de forma NO bloqueante (fire-and-forget).
+    // El usuario recibe respuesta inmediata. Si el email falla, queda
+    // registrado en los logs de Railway pero NO afecta la respuesta HTTP.
+    this.sendEmailNotification(createContactDto).then((sent) => {
+      if (sent) {
+        console.log(`📧 Email de notificación enviado para mensaje id=${newContact.id}`);
+      } else {
+        console.warn(`⚠️  Email de notificación NO enviado para mensaje id=${newContact.id}. Ver error arriba.`);
+      }
+    });
 
     return {
       success: true,
       message: 'Mensaje enviado y guardado con éxito',
-      emailNotificationSent: emailSent,
       data: newContact,
     };
   }
 
-  /**
-   * Envía la notificación por correo al administrador.
-   * Retorna `true` si el envío fue exitoso, `false` si falló.
-   * Nunca lanza excepción para no interrumpir el flujo principal.
-   */
   /**
    * Escapa caracteres especiales HTML para prevenir XSS/HTML injection
    * en el cuerpo del correo de notificación.
@@ -44,16 +44,36 @@ export class ContactService {
       .replace(/'/g, '&#039;');
   }
 
+  /**
+   * Envía la notificación por correo al administrador.
+   * Retorna `true` si el envío fue exitoso, `false` si falló.
+   * Nunca lanza excepción para no interrumpir el flujo principal.
+   *
+   * Configuración SMTP:
+   * - Puerto 465 + secure:true (SSL directo) — mejor compatibilidad en Railway
+   * - connectionTimeout: 10s — falla rápido si el puerto está bloqueado
+   * - socketTimeout: 15s — falla rápido si la conexión se cuelga durante el envío
+   */
   private async sendEmailNotification(dto: CreateContactDto): Promise<boolean> {
+    const mailUser = process.env.MAIL_USER;
+    const mailPass = process.env.MAIL_PASS;
+
+    if (!mailUser || !mailPass) {
+      console.error('❌ Email no configurado: MAIL_USER o MAIL_PASS no definidos en las variables de entorno.');
+      return false;
+    }
+
     try {
       const transporter = nodemailer.createTransport({
         host: process.env.MAIL_HOST || 'smtp.gmail.com',
-        port: Number(process.env.MAIL_PORT) || 587,
-        secure: false,
+        port: Number(process.env.MAIL_PORT) || 465,
+        secure: process.env.MAIL_PORT ? Number(process.env.MAIL_PORT) === 465 : true, // true = SSL en 465
         auth: {
-          user: process.env.MAIL_USER,
-          pass: process.env.MAIL_PASS,
+          user: mailUser,
+          pass: mailPass,
         },
+        connectionTimeout: 10_000, // 10 segundos — si Railway bloquea el puerto, falla rápido
+        socketTimeout: 15_000,     // 15 segundos — timeout durante la transmisión del mensaje
       });
 
       // Escapamos todos los valores del usuario antes de insertarlos en HTML
@@ -63,8 +83,8 @@ export class ContactService {
       const message = this.escapeHtml(dto.message);
 
       await transporter.sendMail({
-        from: `"Web Hasta Up" <${process.env.MAIL_USER}>`,
-        to: process.env.MAIL_DESTINATION || process.env.MAIL_USER,
+        from: `"Web Hasta Up" <${mailUser}>`,
+        to: process.env.MAIL_DESTINATION || mailUser,
         subject: `Nuevo mensaje de contacto de ${name}`,
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
@@ -81,9 +101,12 @@ export class ContactService {
       });
 
       return true;
-    } catch (error) {
-      // Registramos el error pero no lo propagamos: el mensaje ya fue guardado en BD
-      console.error('Error al enviar el correo de notificación:', error);
+    } catch (error: any) {
+      // Log detallado para ver el motivo exacto en Railway → Logs
+      console.error('❌ Error al enviar el correo de notificación:');
+      console.error(`   Código:   ${error?.code || 'N/A'}`);
+      console.error(`   Mensaje:  ${error?.message || error}`);
+      console.error(`   Respuesta SMTP: ${error?.response || 'N/A'}`);
       return false;
     }
   }
