@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateContactDto } from './dto/create-contact.dto';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 @Injectable()
 export class ContactService {
@@ -16,11 +16,11 @@ export class ContactService {
     // 2. Disparar el email de forma NO bloqueante (fire-and-forget).
     // El usuario recibe respuesta inmediata. Si el email falla, queda
     // registrado en los logs de Railway pero NO afecta la respuesta HTTP.
-    this.sendEmailNotification(createContactDto).then((sent) => {
+    this.sendEmailNotification(createContactDto, newContact.id).then((sent) => {
       if (sent) {
         console.log(`📧 Email de notificación enviado para mensaje id=${newContact.id}`);
       } else {
-        console.warn(`⚠️  Email de notificación NO enviado para mensaje id=${newContact.id}. Ver error arriba.`);
+        console.warn(`⚠️  Email NO enviado para mensaje id=${newContact.id}. Ver error arriba.`);
       }
     });
 
@@ -45,36 +45,32 @@ export class ContactService {
   }
 
   /**
-   * Envía la notificación por correo al administrador.
+   * Envía la notificación por correo usando Resend (HTTP API — compatible con Railway).
    * Retorna `true` si el envío fue exitoso, `false` si falló.
-   * Nunca lanza excepción para no interrumpir el flujo principal.
    *
-   * Configuración SMTP:
-   * - Puerto 465 + secure:true (SSL directo) — mejor compatibilidad en Railway
-   * - connectionTimeout: 10s — falla rápido si el puerto está bloqueado
-   * - socketTimeout: 15s — falla rápido si la conexión se cuelga durante el envío
+   * Variables de entorno requeridas:
+   *   RESEND_API_KEY  → obtenida desde resend.com/dashboard → API Keys
+   *   MAIL_FROM       → dirección remitente (ej: "noreply@tudominio.com")
+   *                     Si no tenés dominio verificado en Resend, usá: "onboarding@resend.dev"
+   *   MAIL_DESTINATION → dirección donde llegan las notificaciones (tu Gmail)
    */
-  private async sendEmailNotification(dto: CreateContactDto): Promise<boolean> {
-    const mailUser = process.env.MAIL_USER;
-    const mailPass = process.env.MAIL_PASS;
+  private async sendEmailNotification(dto: CreateContactDto, messageId: string): Promise<boolean> {
+    const apiKey = process.env.RESEND_API_KEY;
+    const mailDestination = process.env.MAIL_DESTINATION;
+    const mailFrom = process.env.MAIL_FROM || 'onboarding@resend.dev';
 
-    if (!mailUser || !mailPass) {
-      console.error('❌ Email no configurado: MAIL_USER o MAIL_PASS no definidos en las variables de entorno.');
+    if (!apiKey) {
+      console.error('❌ Email no configurado: RESEND_API_KEY no definida en las variables de entorno.');
+      return false;
+    }
+
+    if (!mailDestination) {
+      console.error('❌ Email no configurado: MAIL_DESTINATION no definida en las variables de entorno.');
       return false;
     }
 
     try {
-      const transporter = nodemailer.createTransport({
-        host: process.env.MAIL_HOST || 'smtp.gmail.com',
-        port: Number(process.env.MAIL_PORT) || 465,
-        secure: process.env.MAIL_PORT ? Number(process.env.MAIL_PORT) === 465 : true, // true = SSL en 465
-        auth: {
-          user: mailUser,
-          pass: mailPass,
-        },
-        connectionTimeout: 10_000, // 10 segundos — si Railway bloquea el puerto, falla rápido
-        socketTimeout: 15_000,     // 15 segundos — timeout durante la transmisión del mensaje
-      });
+      const resend = new Resend(apiKey);
 
       // Escapamos todos los valores del usuario antes de insertarlos en HTML
       const name    = this.escapeHtml(dto.name);
@@ -82,31 +78,51 @@ export class ContactService {
       const phone   = dto.phone ? this.escapeHtml(dto.phone) : 'No especificado';
       const message = this.escapeHtml(dto.message);
 
-      await transporter.sendMail({
-        from: `"Web Hasta Up" <${mailUser}>`,
-        to: process.env.MAIL_DESTINATION || mailUser,
+      const { error } = await resend.emails.send({
+        from: `Web Hasta Up <${mailFrom}>`,
+        to: [mailDestination],
         subject: `Nuevo mensaje de contacto de ${name}`,
         html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-            <h2 style="color: #2563eb;">¡Has recibido una nueva consulta!</h2>
-            <p><strong>Nombre:</strong> ${name}</p>
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Teléfono:</strong> ${phone}</p>
-            <p><strong>Mensaje:</strong></p>
-            <blockquote style="background: #f3f4f6; padding: 15px; border-left: 4px solid #2563eb; margin: 10px 0;">
+          <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px;">
+            <h2 style="color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+              ¡Has recibido una nueva consulta!
+            </h2>
+            <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+              <tr>
+                <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-weight: bold; width: 120px;">Nombre</td>
+                <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${name}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-weight: bold;">Email</td>
+                <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${email}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-weight: bold;">Teléfono</td>
+                <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${phone}</td>
+              </tr>
+            </table>
+            <p style="font-weight: bold; margin-top: 20px;">Mensaje:</p>
+            <blockquote style="background: #f3f4f6; padding: 15px; border-left: 4px solid #2563eb; margin: 10px 0; border-radius: 4px;">
               ${message}
             </blockquote>
+            <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
+              Mensaje recibido vía formulario de contacto de Hasta Up · ID: ${messageId}
+            </p>
           </div>
         `,
       });
 
+      if (error) {
+        console.error('❌ Error de Resend al enviar email:');
+        console.error(`   Nombre:  ${error.name}`);
+        console.error(`   Mensaje: ${error.message}`);
+        return false;
+      }
+
       return true;
     } catch (error: any) {
-      // Log detallado para ver el motivo exacto en Railway → Logs
-      console.error('❌ Error al enviar el correo de notificación:');
-      console.error(`   Código:   ${error?.code || 'N/A'}`);
-      console.error(`   Mensaje:  ${error?.message || error}`);
-      console.error(`   Respuesta SMTP: ${error?.response || 'N/A'}`);
+      console.error('❌ Excepción inesperada al enviar email con Resend:');
+      console.error(`   ${error?.message || error}`);
       return false;
     }
   }
