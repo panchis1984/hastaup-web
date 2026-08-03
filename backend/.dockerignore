@@ -1,0 +1,26 @@
+# Dependencias (se instalan dentro del contenedor)
+node_modules/
+
+# Build local (se recompila dentro del contenedor con nest build)
+dist/
+tsconfig.build.tsbuildinfo
+
+# Archivos de entorno locales (las variables se inyectan desde Railway)
+.env
+.env.local
+.env.development
+
+# Archivos de desarrollo y CI que no son necesarios en producción
+*.md
+.git/
+.gitignore
+test/
+coverage/
+
+# Herramientas de editor y linting
+.prettierrc
+eslint.config.mjs
+.claude/
+.windsurf/
+.agents/
+skills-lock.json
