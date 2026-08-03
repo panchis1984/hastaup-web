@@ -25,9 +25,10 @@ model Property {
   location  String
   price     Float
   type      String   // "Venta" o "Alquiler"
-  imageUrl  String
+  imageUrl  String           // Foto de portada (se muestra en cards y listados)
+  images    String[]         // Galería adicional (se muestra en la página de detalle)
   details   Json?    // { bedrooms: number, bathrooms: number }
-  featured  Boolean  @default(false) // <-- AGREGAR ESTO
+  featured  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

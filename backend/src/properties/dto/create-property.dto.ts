@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsPositive, IsIn, IsUrl, IsObject } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsPositive, IsIn, IsUrl, IsObject, IsArray, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreatePropertyDto {
@@ -24,4 +24,9 @@ export class CreatePropertyDto {
 
   @IsUrl({}, { message: 'La URL de la imagen no es válida' })
   imageUrl!: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUrl({}, { each: true })
+  images?: string[];
 }

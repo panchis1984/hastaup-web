@@ -21,9 +21,12 @@ export default function AdminDashboard() {
     price: '',
     type: 'Venta',
     imageUrl: '',
+    images: [] as string[],
     bedrooms: '',
     bathrooms: '',
   });
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
 
   const [formStatus, setFormStatus] = useState({ loading: false, error: '', success: false });
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
@@ -47,6 +50,21 @@ export default function AdminDashboard() {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
   };
+
+  // Upload de imagen a Cloudinary (directo desde el browser)
+  const uploadToCloudinary = async (file: File): Promise<string> => {
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+    if (!cloudName || !uploadPreset) throw new Error('Cloudinary no configurado. Agregá las variables de entorno.');
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', uploadPreset);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: fd });
+    if (!res.ok) throw new Error('Error al subir imagen a Cloudinary');
+    const data = await res.json();
+    return data.secure_url as string;
+  };
+
 
   const fetchData = useCallback(async () => {
     try {
@@ -117,6 +135,7 @@ export default function AdminDashboard() {
         price: Number(form.price),
         type: form.type,
         imageUrl: form.imageUrl,
+        images: form.images,
         details: {
           bedrooms: Number(form.bedrooms),
           bathrooms: Number(form.bathrooms),
@@ -148,13 +167,14 @@ export default function AdminDashboard() {
 
   const handleEditClick = (prop: any) => {
     setEditingId(prop.id);
-    setFormStatus({ loading: false, error: '', success: false }); // Limpiar estado anterior
+    setFormStatus({ loading: false, error: '', success: false });
     setForm({
       title: prop.title,
       location: prop.location,
       price: prop.price,
       type: prop.type,
       imageUrl: prop.imageUrl,
+      images: Array.isArray(prop.images) ? prop.images : [],
       bedrooms: prop.details?.bedrooms || '',
       bathrooms: prop.details?.bathrooms || '',
     });
@@ -205,7 +225,7 @@ export default function AdminDashboard() {
   const resetForm = () => {
     setEditingId(null);
     setFormStatus({ loading: false, error: '', success: false });
-    setForm({ title: '', location: '', price: '', type: 'Venta', imageUrl: '', bedrooms: '', bathrooms: '' });
+    setForm({ title: '', location: '', price: '', type: 'Venta', imageUrl: '', images: [], bedrooms: '', bathrooms: '' });
   };
 
   // Confirmar eliminación de mensaje de contacto
@@ -534,15 +554,121 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">URL de la Imagen</label>
-                    <input
-                      type="url"
-                      required
-                      value={form.imageUrl}
-                      onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm"
-                    />
+                  {/* ── SECCIÓN IMÁGENES ── */}
+                  <div className="space-y-4 pt-2">
+                    <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-100 pb-2">📷 Fotos del Inmueble</h3>
+
+                    {/* Foto de portada */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-2">Foto de portada <span className="text-red-500">*</span></label>
+                      <div className="flex items-center gap-3">
+                        {form.imageUrl && (
+                          <div className="relative w-20 h-20 flex-shrink-0">
+                            <img src={form.imageUrl} alt="Portada" className="w-20 h-20 rounded-lg object-cover border border-gray-200" />
+                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">PORTADA</span>
+                          </div>
+                        )}
+                        <label className={`flex-1 flex flex-col items-center justify-center gap-1.5 border-2 border-dashed rounded-xl p-4 cursor-pointer transition-colors ${
+                          uploadingCover ? 'border-gray-200 bg-gray-50' : 'border-red-200 hover:border-red-400 hover:bg-red-50'
+                        }`}>
+                          {uploadingCover ? (
+                            <svg className="animate-spin w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                            </svg>
+                          )}
+                          <span className="text-xs text-gray-500">{uploadingCover ? 'Subiendo...' : form.imageUrl ? 'Cambiar portada' : 'Subir foto de portada'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingCover}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              try {
+                                setUploadingCover(true);
+                                const url = await uploadToCloudinary(file);
+                                setForm((f) => ({ ...f, imageUrl: url }));
+                              } catch (err: any) {
+                                alert(err.message);
+                              } finally {
+                                setUploadingCover(false);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Galería */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-2">
+                        Galería <span className="text-gray-400 font-normal">({form.images.length} fotos adicionales)</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {form.images.map((url, i) => (
+                          <div key={i} className="relative w-20 h-20">
+                            <img src={url} alt={`Galería ${i + 1}`} className="w-20 h-20 rounded-lg object-cover border border-gray-200" />
+                            <button
+                              type="button"
+                              onClick={() => setForm((f) => ({ ...f, images: f.images.filter((_, idx) => idx !== i) }))}
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+
+                        {/* Botón agregar foto */}
+                        {form.images.length < 9 && (
+                          <label className={`w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                            uploadingGallery ? 'border-gray-200 bg-gray-50' : 'border-gray-300 hover:border-red-400 hover:bg-red-50'
+                          }`}>
+                            {uploadingGallery ? (
+                              <svg className="animate-spin w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                              </svg>
+                            )}
+                            <span className="text-[10px] text-gray-400 mt-0.5">{uploadingGallery ? '...' : 'Agregar'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              disabled={uploadingGallery}
+                              onChange={async (e) => {
+                                const files = Array.from(e.target.files || []);
+                                if (!files.length) return;
+                                try {
+                                  setUploadingGallery(true);
+                                  const urls = await Promise.all(files.slice(0, 9 - form.images.length).map(uploadToCloudinary));
+                                  setForm((f) => ({ ...f, images: [...f.images, ...urls] }));
+                                } catch (err: any) {
+                                  alert(err.message);
+                                } finally {
+                                  setUploadingGallery(false);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1">Máximo 9 fotos de galería. Podés seleccionar varias a la vez.</p>
+                    </div>
                   </div>
 
                   <button

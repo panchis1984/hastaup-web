@@ -1,4 +1,4 @@
-// Build: 2026-07-30 — fuerza rebuild para tomar NEXT_PUBLIC_API_URL del entorno Railway
+// Build: 2026-08-03 — multi-image Cloudinary support
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -10,14 +10,11 @@ const nextConfig: NextConfig = {
         hostname: 'images.unsplash.com',
       },
       {
-        // Las imágenes de propiedades pueden venir de cualquier URL HTTPS
-        // que el admin cargue (Airbnb, portales inmobiliarios, etc.)
         protocol: 'https',
-        hostname: '**',
+        hostname: 'res.cloudinary.com',
       },
     ],
   },
 };
 
 export default nextConfig;
-

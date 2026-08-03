@@ -53,6 +53,7 @@ export class PropertiesService {
         price: updatePropertyDto.price !== undefined ? Number(updatePropertyDto.price) : undefined,
         type: updatePropertyDto.type,
         imageUrl: updatePropertyDto.imageUrl,
+        images: updatePropertyDto.images,
         details: updatePropertyDto.details,
       },
     });
