@@ -10,7 +10,10 @@ export class PropertiesService {
   // Crear un inmueble
   async create(createPropertyDto: CreatePropertyDto) {
     return this.prisma.property.create({
-      data: createPropertyDto,
+      data: {
+        ...createPropertyDto,
+        currency: createPropertyDto.currency || 'USD',
+      },
     });
   }
 
@@ -51,6 +54,7 @@ export class PropertiesService {
         title: updatePropertyDto.title,
         location: updatePropertyDto.location,
         price: updatePropertyDto.price !== undefined ? Number(updatePropertyDto.price) : undefined,
+        currency: updatePropertyDto.currency,
         type: updatePropertyDto.type,
         imageUrl: updatePropertyDto.imageUrl,
         images: updatePropertyDto.images,

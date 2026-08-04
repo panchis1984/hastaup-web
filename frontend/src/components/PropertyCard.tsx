@@ -6,6 +6,7 @@ interface PropertyCardProps {
   title: string;
   location: string;
   price: number;
+  currency?: string;
   bedrooms: number;
   bathrooms: number;
   imageUrl: string;
@@ -17,6 +18,7 @@ export default function PropertyCard({
   title,
   location,
   price,
+  currency = 'USD',
   bedrooms,
   bathrooms,
   imageUrl,
@@ -47,7 +49,7 @@ export default function PropertyCard({
           
           <div className="mt-4 flex items-center justify-between">
             <span className="text-xl font-extrabold text-gray-950">
-              ${price.toLocaleString()}
+              {currency === 'ARS' ? `$ ${price.toLocaleString()}` : `USD $ ${price.toLocaleString()}`}
             </span>
             <div className="flex items-center gap-3 text-gray-500 text-sm">
               <span>{bedrooms} habs</span>

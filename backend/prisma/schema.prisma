@@ -24,6 +24,7 @@ model Property {
   title     String
   location  String
   price     Float
+  currency  String   @default("USD")
   type      String   // "Venta" o "Alquiler"
   imageUrl  String           // Foto de portada (se muestra en cards y listados)
   images    String[]         // Galería adicional (se muestra en la página de detalle)

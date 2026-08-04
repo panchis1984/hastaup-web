@@ -16,12 +16,15 @@ function CatalogContent() {
   // Estados de los filtros de la vista
   const [searchTerm, setSearchTerm] = useState(searchKeyword);
   const [selectedType, setSelectedType] = useState(typeParam);
+  const [selectedCurrency, setSelectedCurrency] = useState('Todas');
   const [maxPrice, setMaxPrice] = useState('');
 
-  // Estado del dropdown personalizado
+  // Estado de los dropdowns personalizados
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
 
   const TYPE_OPTIONS = ['Todos', 'Venta', 'Alquiler'];
+  const CURRENCY_OPTIONS = ['Todas', 'USD', 'ARS'];
 
   // Cargar propiedades al montar el componente
   useEffect(() => {
@@ -67,6 +70,11 @@ function CatalogContent() {
       result = result.filter((prop: any) => prop.type === selectedType);
     }
 
+    // Filtrar por moneda (USD / ARS)
+    if (selectedCurrency && selectedCurrency !== 'Todas') {
+      result = result.filter((prop: any) => (prop.currency || 'USD') === selectedCurrency);
+    }
+
     // Filtrar por precio máximo
     if (maxPrice) {
       const priceLimit = Number(maxPrice);
@@ -74,7 +82,7 @@ function CatalogContent() {
     }
 
     setFilteredProperties(result);
-  }, [searchTerm, selectedType, maxPrice, properties]);
+  }, [searchTerm, selectedType, selectedCurrency, maxPrice, properties]);
 
   return (
     <main className="min-h-screen bg-yellow-50 py-10 px-4 sm:px-6 lg:px-8">
@@ -87,7 +95,7 @@ function CatalogContent() {
         </div>
 
         {/* Barra de Filtros */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Buscar por ubicación o título</label>
             <input
@@ -141,8 +149,50 @@ function CatalogContent() {
             )}
           </div>
 
+          {/* ── Custom Dropdown: Moneda ── */}
+          <div className="relative">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Moneda</label>
+            <button
+              type="button"
+              onClick={() => setCurrencyDropdownOpen((o) => !o)}
+              onBlur={() => setTimeout(() => setCurrencyDropdownOpen(false), 150)}
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 focus:outline-none text-sm bg-gray-50 flex items-center justify-between text-left"
+            >
+              <span>{selectedCurrency === 'Todas' ? 'Todas las monedas' : selectedCurrency}</span>
+              <svg
+                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${currencyDropdownOpen ? 'rotate-180' : ''}`}
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {currencyDropdownOpen && (
+              <ul className="absolute z-20 mt-1.5 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                {CURRENCY_OPTIONS.map((option) => (
+                  <li key={option}>
+                    <button
+                      type="button"
+                      onMouseDown={() => {
+                        setSelectedCurrency(option);
+                        setCurrencyDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors
+                        ${selectedCurrency === option
+                          ? 'bg-red-600 text-white font-semibold'
+                          : 'text-gray-700 hover:bg-red-50 hover:text-red-600'
+                        }`}
+                    >
+                      {option === 'Todas' ? 'Todas las monedas' : option}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Precio Máximo ($)</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Precio Máximo</label>
             <input
               type="number"
               value={maxPrice}
@@ -180,7 +230,7 @@ function CatalogContent() {
 
                     <div className="mt-4 flex items-center justify-between">
                       <span className="text-xl font-extrabold text-gray-950">
-                        ${prop.price?.toLocaleString()}
+                        {prop.currency === 'ARS' ? `$ ${prop.price?.toLocaleString()}` : `USD $ ${prop.price?.toLocaleString()}`}
                       </span>
                       <div className="flex items-center gap-3 text-gray-500 text-sm">
                         <span>{prop.details?.bedrooms || 0} habs</span>

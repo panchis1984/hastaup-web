@@ -24,8 +24,9 @@ export default function PropertyDetailPage() {
         if (!res.ok) throw new Error('Propiedad no encontrada');
         const data = await res.json();
         setProperty(data);
+        const priceFormatted = data.currency === 'ARS' ? `$${data.price?.toLocaleString()}` : `USD $${data.price?.toLocaleString()}`;
         setWhatsappMessage(
-          `Hola, estoy interesado en la propiedad "${data.title}" ubicada en ${data.location} (Precio: $${data.price?.toLocaleString()}). Me gustaría recibir más información.`
+          `Hola, estoy interesado en la propiedad "${data.title}" ubicada en ${data.location} (Precio: ${priceFormatted}). Me gustaría recibir más información.`
         );
       } catch (error) {
         console.error('Error al cargar la propiedad', error);
@@ -101,7 +102,7 @@ export default function PropertyDetailPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">{property.title}</h1>
                   <span className="text-2xl sm:text-3xl font-black text-red-600">
-                    ${property.price?.toLocaleString()}
+                    {property.currency === 'ARS' ? `$ ${property.price?.toLocaleString()}` : `USD $ ${property.price?.toLocaleString()}`}
                   </span>
                 </div>
 

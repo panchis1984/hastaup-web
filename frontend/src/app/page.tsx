@@ -131,7 +131,7 @@ export default function HomePage() {
 
                     <div className="mt-4 flex items-center justify-between">
                       <span className="text-xl font-extrabold text-gray-950">
-                        ${prop.price?.toLocaleString()}
+                        {prop.currency === 'ARS' ? `$ ${prop.price?.toLocaleString()}` : `USD $ ${prop.price?.toLocaleString()}`}
                       </span>
                       <div className="flex items-center gap-3 text-gray-500 text-sm">
                         <span>{prop.details?.bedrooms || 0} habs</span>

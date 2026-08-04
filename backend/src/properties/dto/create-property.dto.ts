@@ -15,6 +15,11 @@ export class CreatePropertyDto {
   @Type(() => Number)
   price!: number;
 
+  @IsOptional()
+  @IsString()
+  @IsIn(['USD', 'ARS'], { message: 'La moneda debe ser "USD" o "ARS"' })
+  currency?: string;
+
   @IsString()
   @IsIn(['Venta', 'Alquiler'], { message: 'El tipo debe ser "Venta" o "Alquiler"' })
   type!: string;

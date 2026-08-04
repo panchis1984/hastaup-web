@@ -19,6 +19,7 @@ export default function AdminDashboard() {
     title: '',
     location: '',
     price: '',
+    currency: 'USD',
     type: 'Venta',
     imageUrl: '',
     images: [] as string[],
@@ -30,7 +31,9 @@ export default function AdminDashboard() {
 
   const [formStatus, setFormStatus] = useState({ loading: false, error: '', success: false });
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+  const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const TYPE_OPTIONS = ['Venta', 'Alquiler'];
+  const CURRENCY_OPTIONS = ['USD', 'ARS'];
 
   // Estados para el Modal de Confirmación y Alertas modernas
   const [modalConfig, setModalConfig] = useState({
@@ -139,6 +142,7 @@ export default function AdminDashboard() {
         title: form.title,
         location: form.location,
         price: Number(form.price),
+        currency: form.currency,
         type: form.type,
         imageUrl: form.imageUrl,
         images: form.images,
@@ -178,6 +182,7 @@ export default function AdminDashboard() {
       title: prop.title,
       location: prop.location,
       price: prop.price,
+      currency: prop.currency || 'USD',
       type: prop.type,
       imageUrl: prop.imageUrl,
       images: Array.isArray(prop.images) ? prop.images : [],
@@ -231,7 +236,7 @@ export default function AdminDashboard() {
   const resetForm = () => {
     setEditingId(null);
     setFormStatus({ loading: false, error: '', success: false });
-    setForm({ title: '', location: '', price: '', type: 'Venta', imageUrl: '', images: [], bedrooms: '', bathrooms: '' });
+    setForm({ title: '', location: '', price: '', currency: 'USD', type: 'Venta', imageUrl: '', images: [], bedrooms: '', bathrooms: '' });
   };
 
   // Confirmar eliminación de mensaje de contacto
@@ -385,7 +390,9 @@ export default function AdminDashboard() {
                               {prop.type}
                             </span>
                           </td>
-                          <td className="p-4 font-extrabold text-gray-950">${prop.price?.toLocaleString()}</td>
+                          <td className="p-4 font-extrabold text-gray-950">
+                            {prop.currency === 'ARS' ? `$ ${prop.price?.toLocaleString()}` : `USD $ ${prop.price?.toLocaleString()}`}
+                          </td>
                           <td className="p-4 text-right space-x-2">
                             <button
                               onClick={() => handleEditClick(prop)}
@@ -485,15 +492,53 @@ export default function AdminDashboard() {
                         className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Precio ($)</label>
-                      <input
-                        type="number"
-                        required
-                        value={form.price}
-                        onChange={(e) => setForm({ ...form, price: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm"
-                      />
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="col-span-1 relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
+                        <button
+                          type="button"
+                          onClick={() => setCurrencyDropdownOpen((o) => !o)}
+                          onBlur={() => setTimeout(() => setCurrencyDropdownOpen(false), 150)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none bg-white text-sm flex items-center justify-between font-bold text-gray-800"
+                        >
+                          <span>{form.currency}</span>
+                          <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${currencyDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+
+                        {currencyDropdownOpen && (
+                          <ul className="absolute z-20 mt-1.5 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                            {CURRENCY_OPTIONS.map((option) => (
+                              <li key={option}>
+                                <button
+                                  type="button"
+                                  onMouseDown={() => {
+                                    setForm({ ...form, currency: option });
+                                    setCurrencyDropdownOpen(false);
+                                  }}
+                                  className={`w-full text-left px-3 py-2 text-xs font-bold transition-colors ${
+                                    form.currency === option ? 'bg-red-600 text-white' : 'text-gray-700 hover:bg-red-50 hover:text-red-600'
+                                  }`}
+                                >
+                                  {option === 'USD' ? 'USD ($)' : 'ARS ($)'}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
+                        <input
+                          type="number"
+                          required
+                          value={form.price}
+                          onChange={(e) => setForm({ ...form, price: e.target.value })}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm"
+                          placeholder={form.currency === 'USD' ? 'Ej. 120000' : 'Ej. 150000000'}
+                        />
+                      </div>
                     </div>
                   </div>
 
