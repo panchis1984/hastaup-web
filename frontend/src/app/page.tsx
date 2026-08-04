@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 
 export default function HomePage() {
   const router = useRouter();
@@ -48,12 +47,10 @@ export default function HomePage() {
       <section className="relative bg-gray-900 text-white py-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
         {/* Imagen de fondo con overlay oscuro */}
         <div className="absolute inset-0 z-0 opacity-40">
-          <Image
+          <img
             src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=1600"
             alt="Moderna casa"
-            fill
-            className="object-cover"
-            priority
+            className="w-full h-full object-cover"
           />
         </div>
 
@@ -116,12 +113,10 @@ export default function HomePage() {
               <Link key={prop.id} href={`/inmuebles/${prop.id}`} className="group block">
                 <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300">
                   <div className="relative h-48 w-full overflow-hidden bg-gray-200">
-                    <Image
+                    <img
                       src={prop.imageUrl}
                       alt={prop.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-gray-900 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
                       {prop.type}

@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 
 function CatalogContent() {
   const searchParams = useSearchParams();
@@ -163,12 +162,10 @@ function CatalogContent() {
               <Link key={prop.id} href={`/inmuebles/${prop.id}`} className="group block">
                 <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300">
                   <div className="relative h-48 w-full overflow-hidden bg-gray-200">
-                    <Image
+                    <img
                       src={prop.imageUrl}
                       alt={prop.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-gray-900 text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
                       {prop.type}

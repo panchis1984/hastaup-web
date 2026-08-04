@@ -128,6 +128,12 @@ export default function AdminDashboard() {
     e.preventDefault();
     setFormStatus({ loading: true, error: '', success: false });
 
+    // Validar que haya foto de portada antes de enviar
+    if (!form.imageUrl) {
+      setFormStatus({ loading: false, error: 'Debés subir al menos una foto de portada antes de guardar.', success: false });
+      return;
+    }
+
     try {
       const payload = {
         title: form.title,
