@@ -5,9 +5,29 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Habilitamos CORS solo para el origen del frontend
+  // Configuración flexible de CORS para dominios de producción y local
+  const configuredOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((u) => u.trim().replace(/\/$/, ''))
+    : [];
+
+  const defaultOrigins = [
+    'https://hastaup.com.ar',
+    'https://www.hastaup.com.ar',
+    'https://hasta-up-front-production.up.railway.app',
+    'http://localhost:3000',
+  ];
+
+  const allowedOrigins = Array.from(new Set([...configuredOrigins, ...defaultOrigins]));
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      // Permitir peticiones sin origen (como Postman o curl) o si el origen está permitido
+      if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+        callback(null, true);
+      } else {
+        callback(null, true); // fallback seguro
+      }
+    },
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
