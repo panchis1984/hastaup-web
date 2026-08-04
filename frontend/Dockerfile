@@ -5,10 +5,16 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 
-# Declarar la variable como ARG para que Docker la reciba de Railway durante el build.
-# Sin esto, Next.js compila con undefined y el bundle queda roto.
+# Declarar las variables como ARG para que Docker las reciba de Railway durante el build.
+# Sin esto, Next.js compila con undefined en el bundle.
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+ARG NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+ENV NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=$NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+
+ARG NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+ENV NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=$NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
 
 RUN npm run build
 
