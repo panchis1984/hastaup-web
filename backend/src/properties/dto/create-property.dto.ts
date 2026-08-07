@@ -6,6 +6,10 @@ export class CreatePropertyDto {
   @IsNotEmpty({ message: 'El título no puede estar vacío' })
   title!: string;
 
+  @IsOptional()
+  @IsString()
+  description?: string;
+
   @IsString()
   @IsNotEmpty({ message: 'La ubicación no puede estar vacía' })
   location!: string;

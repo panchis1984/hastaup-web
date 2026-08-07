@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: '',
+    description: '',
     location: '',
     price: '',
     currency: 'USD',
@@ -140,6 +141,7 @@ export default function AdminDashboard() {
     try {
       const payload = {
         title: form.title,
+        description: form.description,
         location: form.location,
         price: Number(form.price),
         currency: form.currency,
@@ -180,6 +182,7 @@ export default function AdminDashboard() {
     setFormStatus({ loading: false, error: '', success: false });
     setForm({
       title: prop.title,
+      description: prop.description || '',
       location: prop.location,
       price: prop.price,
       currency: prop.currency || 'USD',
@@ -236,7 +239,7 @@ export default function AdminDashboard() {
   const resetForm = () => {
     setEditingId(null);
     setFormStatus({ loading: false, error: '', success: false });
-    setForm({ title: '', location: '', price: '', currency: 'USD', type: 'Venta', imageUrl: '', images: [], bedrooms: '', bathrooms: '' });
+    setForm({ title: '', description: '', location: '', price: '', currency: 'USD', type: 'Venta', imageUrl: '', images: [], bedrooms: '', bathrooms: '' });
   };
 
   // Confirmar eliminación de mensaje de contacto
@@ -478,6 +481,17 @@ export default function AdminDashboard() {
                       value={form.title}
                       onChange={(e) => setForm({ ...form, title: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Descripción del Inmueble</label>
+                    <textarea
+                      rows={4}
+                      value={form.description}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                      placeholder="Describí las características principales, comodidades, entorno, estado de la propiedad..."
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm resize-y"
                     />
                   </div>
 

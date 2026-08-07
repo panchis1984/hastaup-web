@@ -20,9 +20,10 @@ model User {
 
 // 3. Modelo de Inmueble (Estructura híbrida con JSONB)
 model Property {
-  id        String   @id @default(uuid())
-  title     String
-  location  String
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  location    String
   price     Float
   currency  String   @default("USD")
   type      String   // "Venta" o "Alquiler"

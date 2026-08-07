@@ -52,6 +52,7 @@ export class PropertiesService {
       where: { id },
       data: {
         title: updatePropertyDto.title,
+        description: updatePropertyDto.description,
         location: updatePropertyDto.location,
         price: updatePropertyDto.price !== undefined ? Number(updatePropertyDto.price) : undefined,
         currency: updatePropertyDto.currency,

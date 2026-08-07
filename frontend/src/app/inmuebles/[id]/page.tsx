@@ -125,6 +125,16 @@ export default function PropertyDetailPage() {
                     <span className="text-lg font-bold text-gray-900 mt-1">{property.type}</span>
                   </div>
                 </div>
+
+                {/* Descripción */}
+                {property.description && (
+                  <div className="mt-8 pt-6 border-t border-gray-100">
+                    <h3 className="text-lg font-bold text-gray-900 mb-3">Descripción</h3>
+                    <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+                      {property.description}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
