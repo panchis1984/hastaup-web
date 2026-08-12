@@ -2,8 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
+import { json, urlencoded } from 'express';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Aumentar el límite de tamaño de payload JSON a 50mb para permitir base64 local
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ limit: '50mb', extended: true }));
 
   // Configuración flexible de CORS para dominios de producción y local
   const configuredOrigins = process.env.FRONTEND_URL

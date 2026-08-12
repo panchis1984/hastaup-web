@@ -75,22 +75,46 @@ export default function AdminDashboard() {
     };
   };
 
+  const compressImage = (file: File, maxWidth = 1200, quality = 0.8): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   /**
    * Carga de imágenes:
    * Intenta subir la imagen a Cloudinary si están las variables configuradas.
-   * Si no están (entorno local), convierte el archivo a un Data URL Base64 para que se guarde
-   * y previsualice en local sin depender de Cloudinary.
+   * Si no están (entorno local), comprime y convierte el archivo a Data URL Base64 para que se guarde
+   * y previsualice en local sin depender de Cloudinary ni saturar el servidor.
    */
   const uploadToCloudinary = async (file: File): Promise<string> => {
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
+      return compressImage(file);
     }
 
     try {
@@ -102,11 +126,7 @@ export default function AdminDashboard() {
       const data = await res.json();
       return data.secure_url as string;
     } catch (e) {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
+      return compressImage(file);
     }
   };
 
