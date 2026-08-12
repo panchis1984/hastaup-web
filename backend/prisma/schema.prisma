@@ -43,3 +43,19 @@ model ContactMessage {
   message   String
   createdAt DateTime @default(now())
 }
+
+// 4. Modelo de Eventos / Subastas
+model Event {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  date        DateTime
+  time        String
+  location    String
+  category    String   @default("Subasta") // "Subasta", "Charla", "Capacitación", "Exhibición", "Evento"
+  imageUrl    String
+  images      String[]
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

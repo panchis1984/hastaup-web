@@ -44,6 +44,7 @@ export default function Navbar() {
         <ul className="flex items-center gap-6 text-gray-600 font-medium text-sm">
           <li><Link href="/" className="hover:text-red-600 transition">Inicio</Link></li>
           <li><Link href="/inmuebles" className="hover:text-red-600 transition">Inmuebles</Link></li>
+          <li><Link href="/eventos" className="hover:text-red-600 transition">Eventos</Link></li>
           <li><Link href="/nosotros" className="hover:text-red-600 transition">Nosotros</Link></li>
           <li><Link href="/contacto" className="hover:text-red-600 transition">Contacto</Link></li>
 

@@ -3,17 +3,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import ConfirmModal from '@/components/ConfirmModal'; // <-- Importar el modal moderno
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
-  const [activeTab, setActiveTab] = useState<'properties' | 'messages' | 'new-property'>('properties');
+  const [activeTab, setActiveTab] = useState<'properties' | 'events' | 'messages' | 'new-property' | 'new-event'>('properties');
   const [properties, setProperties] = useState([]);
+  const [events, setEvents] = useState([]);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados para creación y edición
+  // Estados para creación y edición de Inmuebles
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: '',
@@ -29,14 +30,34 @@ export default function AdminDashboard() {
   });
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
-
   const [formStatus, setFormStatus] = useState({ loading: false, error: '', success: false });
+
+  // Estados para creación y edición de Eventos
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [eventForm, setEventForm] = useState({
+    title: '',
+    description: '',
+    date: '',
+    time: '',
+    location: '',
+    category: 'Subasta',
+    imageUrl: '',
+    images: [] as string[],
+  });
+  const [uploadingEventCover, setUploadingEventCover] = useState(false);
+  const [uploadingEventGallery, setUploadingEventGallery] = useState(false);
+  const [eventFormStatus, setEventFormStatus] = useState({ loading: false, error: '', success: false });
+
+  // Dropdowns
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+
   const TYPE_OPTIONS = ['Venta', 'Alquiler'];
   const CURRENCY_OPTIONS = ['USD', 'ARS'];
+  const EVENT_CATEGORY_OPTIONS = ['Subasta', 'Charla', 'Capacitación', 'Exhibición', 'Evento'];
 
-  // Estados para el Modal de Confirmación y Alertas modernas
+  // Modal de Confirmación
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
     title: '',
@@ -46,7 +67,6 @@ export default function AdminDashboard() {
     onConfirm: () => { },
   });
 
-  // Obtiene el token JWT almacenado tras el login
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -55,7 +75,6 @@ export default function AdminDashboard() {
     };
   };
 
-  // Upload de imagen a Cloudinary (directo desde el browser)
   const uploadToCloudinary = async (file: File): Promise<string> => {
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
@@ -69,16 +88,15 @@ export default function AdminDashboard() {
     return data.secure_url as string;
   };
 
-
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [propRes, msgRes] = await Promise.all([
+      const [propRes, eventRes, msgRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/properties`),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/events`),
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/contact`, { headers: getAuthHeaders() }),
       ]);
 
-      // Si el token expiró, redirigir al login
       if (msgRes.status === 401) {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
@@ -87,19 +105,19 @@ export default function AdminDashboard() {
       }
 
       const propData = await propRes.json();
+      const eventData = await eventRes.json();
       const msgData = await msgRes.json();
 
       setProperties(propData);
+      setEvents(eventData);
       setMessages(msgData);
     } catch (error) {
       console.error('Error al cargar datos del panel', error);
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [router]);
 
-  // Verificar autenticación y rol de Administrador
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (!userData) {
@@ -128,11 +146,11 @@ export default function AdminDashboard() {
     }
   }, [router, fetchData]);
 
+  // ── MANEJO DE INMUEBLES ──
   const handleSubmitProperty = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormStatus({ loading: true, error: '', success: false });
 
-    // Validar que haya foto de portada antes de enviar
     if (!form.imageUrl) {
       setFormStatus({ loading: false, error: 'Debés subir al menos una foto de portada antes de guardar.', success: false });
       return;
@@ -195,7 +213,6 @@ export default function AdminDashboard() {
     setActiveTab('new-property');
   };
 
-  // Abrir modal moderno de confirmación para eliminar
   const confirmDeleteProperty = (id: string) => {
     setModalConfig({
       isOpen: true,
@@ -217,20 +234,19 @@ export default function AdminDashboard() {
       },
     });
   };
+
   const handleToggleFeatured = async (id: string) => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/properties/destacar/${id}`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
       });
-
       if (!res.ok) {
         const errorData = await res.json();
         alert(errorData.message || 'Error al actualizar el estado de destaque');
         return;
       }
-
-      fetchData(); // Recargar la lista para ver cambios
+      fetchData();
     } catch (err: any) {
       console.error(err);
     }
@@ -242,7 +258,116 @@ export default function AdminDashboard() {
     setForm({ title: '', description: '', location: '', price: '', currency: 'USD', type: 'Venta', imageUrl: '', images: [], bedrooms: '', bathrooms: '' });
   };
 
-  // Confirmar eliminación de mensaje de contacto
+  // ── MANEJO DE EVENTOS ──
+  const handleSubmitEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEventFormStatus({ loading: true, error: '', success: false });
+
+    if (!eventForm.imageUrl) {
+      setEventFormStatus({ loading: false, error: 'Debés subir al menos una foto de portada para el evento.', success: false });
+      return;
+    }
+
+    try {
+      const payload = {
+        title: eventForm.title,
+        description: eventForm.description,
+        date: eventForm.date,
+        time: eventForm.time,
+        location: eventForm.location,
+        category: eventForm.category,
+        imageUrl: eventForm.imageUrl,
+        images: eventForm.images,
+      };
+
+      const url = editingEventId
+        ? `${process.env.NEXT_PUBLIC_API_URL}/events/${editingEventId}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/events`;
+
+      const method = editingEventId ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error('Error al guardar el evento');
+
+      setEventFormStatus({ loading: false, error: '', success: true });
+      resetEventForm();
+      fetchData();
+      setActiveTab('events');
+    } catch (err: any) {
+      setEventFormStatus({ loading: false, error: err.message, success: false });
+    }
+  };
+
+  const handleEditEventClick = (eventItem: any) => {
+    setEditingEventId(eventItem.id);
+    setEventFormStatus({ loading: false, error: '', success: false });
+
+    // Formatear la fecha a YYYY-MM-DD para el input type="date"
+    const dateFormatted = eventItem.date ? new Date(eventItem.date).toISOString().split('T')[0] : '';
+
+    setEventForm({
+      title: eventItem.title,
+      description: eventItem.description || '',
+      date: dateFormatted,
+      time: eventItem.time || '',
+      location: eventItem.location,
+      category: eventItem.category || 'Subasta',
+      imageUrl: eventItem.imageUrl,
+      images: Array.isArray(eventItem.images) ? eventItem.images : [],
+    });
+    setActiveTab('new-event');
+  };
+
+  const confirmDeleteEvent = (id: string) => {
+    setModalConfig({
+      isOpen: true,
+      title: 'Eliminar Evento',
+      message: '¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.',
+      confirmText: 'Sí, eliminar',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/events/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+          });
+          if (!res.ok) throw new Error('No se pudo eliminar el evento');
+          fetchData();
+        } catch (err: any) {
+          alert(err.message);
+        }
+      },
+    });
+  };
+
+  const handleToggleEventFeatured = async (id: string) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/events/destacar/${id}`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        alert(errorData.message || 'Error al actualizar destaque del evento');
+        return;
+      }
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
+
+  const resetEventForm = () => {
+    setEditingEventId(null);
+    setEventFormStatus({ loading: false, error: '', success: false });
+    setEventForm({ title: '', description: '', date: '', time: '', location: '', category: 'Subasta', imageUrl: '', images: [] });
+  };
+
   const confirmDeleteMessage = (id: string) => {
     setModalConfig({
       isOpen: true,
@@ -292,11 +417,11 @@ export default function AdminDashboard() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-900">Panel de Administración</h1>
-            <p className="text-gray-500 text-sm mt-1">Gestiona tu catálogo de inmuebles y revisa las consultas.</p>
+            <p className="text-gray-500 text-sm mt-1">Gestiona inmuebles, eventos, subastas y consultas.</p>
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/inmuebles" className="text-sm font-medium text-red-600 hover:underline">
+            <Link href="/" className="text-sm font-medium text-red-600 hover:underline">
               Ver sitio público
             </Link>
             <button
@@ -313,10 +438,14 @@ export default function AdminDashboard() {
         </div>
 
         {/* Tarjetas de Estadísticas */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
             <span className="text-gray-400 text-sm font-medium">Total de Inmuebles</span>
             <div className="text-3xl font-bold text-gray-900 mt-1">{properties.length}</div>
+          </div>
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <span className="text-gray-400 text-sm font-medium">Total de Eventos</span>
+            <div className="text-3xl font-bold text-gray-900 mt-1">{events.length}</div>
           </div>
           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
             <span className="text-gray-400 text-sm font-medium">Mensajes de Contacto</span>
@@ -325,27 +454,36 @@ export default function AdminDashboard() {
         </div>
 
         {/* Pestañas de navegación */}
-        <div className="flex border-b border-gray-200 mb-6 gap-6">
+        <div className="flex flex-wrap border-b border-gray-200 mb-6 gap-4 sm:gap-6">
           <button
-            onClick={() => { resetForm(); setActiveTab('properties'); }}
-            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'properties' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+            onClick={() => { resetForm(); resetEventForm(); setActiveTab('properties'); }}
+            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'properties' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             Inmuebles ({properties.length})
           </button>
           <button
-            onClick={() => setActiveTab('messages')}
-            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'messages' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+            onClick={() => { resetForm(); resetEventForm(); setActiveTab('events'); }}
+            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'events' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
-            Mensajes Recibidos ({messages.length})
+            Eventos / Subastas ({events.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('messages')}
+            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'messages' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            Mensajes ({messages.length})
           </button>
           <button
             onClick={() => { resetForm(); setActiveTab('new-property'); }}
-            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'new-property' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'new-property' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             {editingId ? 'Editar Inmueble' : '+ Agregar Inmueble'}
+          </button>
+          <button
+            onClick={() => { resetEventForm(); setActiveTab('new-event'); }}
+            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'new-event' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            {editingEventId ? 'Editar Evento' : '+ Agregar Evento'}
           </button>
         </div>
 
@@ -375,10 +513,7 @@ export default function AdminDashboard() {
                             <button
                               onClick={() => handleToggleFeatured(prop.id)}
                               title={prop.featured ? "Desmarcar de destacados" : "Marcar como destacado"}
-                              className={`text-2xl transition-colors ${prop.featured
-                                ? 'text-yellow-500 hover:text-yellow-600'
-                                : 'text-gray-300 hover:text-yellow-400'
-                                }`}
+                              className={`text-2xl transition-colors ${prop.featured ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-300 hover:text-yellow-400'}`}
                             >
                               {prop.featured ? '★' : '☆'}
                             </button>
@@ -405,6 +540,68 @@ export default function AdminDashboard() {
                             </button>
                             <button
                               onClick={() => confirmDeleteProperty(prop.id)}
+                              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-lg text-xs transition-colors"
+                            >
+                              Eliminar
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* PESTAÑA: EVENTOS */}
+            {activeTab === 'events' && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase">
+                        <th className="p-4">Destacado</th>
+                        <th className="p-4">Evento / Subasta</th>
+                        <th className="p-4">Categoría</th>
+                        <th className="p-4">Fecha y Hora</th>
+                        <th className="p-4">Ubicación</th>
+                        <th className="p-4 text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 text-sm">
+                      {events.map((ev: any) => (
+                        <tr key={ev.id} className="hover:bg-gray-50/50">
+                          <td className="p-4">
+                            <button
+                              onClick={() => handleToggleEventFeatured(ev.id)}
+                              title={ev.featured ? "Desmarcar de destacados" : "Marcar como destacado"}
+                              className={`text-2xl transition-colors ${ev.featured ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-300 hover:text-yellow-400'}`}
+                            >
+                              {ev.featured ? '★' : '☆'}
+                            </button>
+                          </td>
+                          <td className="p-4 flex items-center gap-3">
+                            <img src={ev.imageUrl} alt="" className="w-12 h-12 rounded-lg object-cover bg-gray-200" />
+                            <span className="font-bold text-gray-900">{ev.title}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className="px-2.5 py-1 text-xs font-semibold bg-red-50 text-red-700 rounded-full">
+                              {ev.category}
+                            </span>
+                          </td>
+                          <td className="p-4 text-gray-600 text-xs font-medium">
+                            {new Date(ev.date).toLocaleDateString('es-AR')} - {ev.time}
+                          </td>
+                          <td className="p-4 text-gray-500">{ev.location}</td>
+                          <td className="p-4 text-right space-x-2">
+                            <button
+                              onClick={() => handleEditEventClick(ev)}
+                              className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg text-xs transition-colors"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => confirmDeleteEvent(ev.id)}
                               className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-lg text-xs transition-colors"
                             >
                               Eliminar
@@ -452,7 +649,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* PESTAÑA: CREAR / EDITAR */}
+            {/* PESTAÑA: CREAR / EDITAR INMUEBLE */}
             {activeTab === 'new-property' && (
               <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm max-w-2xl mx-auto">
                 <div className="flex items-center justify-between mb-6">
@@ -469,6 +666,12 @@ export default function AdminDashboard() {
                 {formStatus.success && (
                   <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm">
                     ¡Inmueble {editingId ? 'actualizado' : 'creado'} con éxito!
+                  </div>
+                )}
+
+                {formStatus.error && (
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
+                    {formStatus.error}
                   </div>
                 )}
 
@@ -584,11 +787,9 @@ export default function AdminDashboard() {
                                   setForm({ ...form, type: option });
                                   setTypeDropdownOpen(false);
                                 }}
-                                className={`w-full text-left px-4 py-2.5 text-sm transition-colors
-                                  ${form.type === option
-                                    ? 'bg-red-600 text-white font-semibold'
-                                    : 'text-gray-700 hover:bg-red-50 hover:text-red-600'
-                                  }`}
+                                className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                                  form.type === option ? 'bg-red-600 text-white font-semibold' : 'text-gray-700 hover:bg-red-50 hover:text-red-600'
+                                }`}
                               >
                                 {option}
                               </button>
@@ -619,11 +820,9 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* ── SECCIÓN IMÁGENES ── */}
+                  {/* Fotos del Inmueble */}
                   <div className="space-y-4 pt-2">
                     <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-100 pb-2">📷 Fotos del Inmueble</h3>
-
-                    {/* Foto de portada */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-2">Foto de portada <span className="text-red-500">*</span></label>
                       <div className="flex items-center gap-3">
@@ -671,7 +870,6 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* Galería */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-2">
                         Galería <span className="text-gray-400 font-normal">({form.images.length} fotos adicionales)</span>
@@ -692,7 +890,6 @@ export default function AdminDashboard() {
                           </div>
                         ))}
 
-                        {/* Botón agregar foto */}
                         {form.images.length < 9 && (
                           <label className={`w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
                             uploadingGallery ? 'border-gray-200 bg-gray-50' : 'border-gray-300 hover:border-red-400 hover:bg-red-50'
@@ -732,16 +929,262 @@ export default function AdminDashboard() {
                           </label>
                         )}
                       </div>
-                      <p className="text-[10px] text-gray-400 mt-1">Máximo 9 fotos de galería. Podés seleccionar varias a la vez.</p>
                     </div>
                   </div>
 
                   <button
                     type="submit"
                     disabled={formStatus.loading}
-                    className="w-full bg-yellow-500 text-white font-medium py-2.5 rounded-lg hover:bg-yellow-600 transition-colors disabled:opacity-50 mt-4 text-sm"
+                    className="w-full bg-red-600 text-white font-medium py-2.5 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 mt-4 text-sm"
                   >
                     {formStatus.loading ? 'Guardando...' : (editingId ? 'Actualizar Inmueble' : 'Publicar Inmueble')}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* PESTAÑA: CREAR / EDITAR EVENTO */}
+            {activeTab === 'new-event' && (
+              <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm max-w-2xl mx-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {editingEventId ? 'Editar Evento / Subasta' : 'Registrar Nuevo Evento'}
+                  </h2>
+                  {editingEventId && (
+                    <button onClick={resetEventForm} className="text-xs text-gray-500 hover:text-gray-700 underline">
+                      Cancelar edición
+                    </button>
+                  )}
+                </div>
+
+                {eventFormStatus.success && (
+                  <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm">
+                    ¡Evento {editingEventId ? 'actualizado' : 'creado'} con éxito!
+                  </div>
+                )}
+
+                {eventFormStatus.error && (
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
+                    {eventFormStatus.error}
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmitEvent} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Título del Evento</label>
+                    <input
+                      type="text"
+                      required
+                      value={eventForm.title}
+                      onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
+                      placeholder="Ej. Subasta Judicial de Inmueble Centro"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="relative">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                      <button
+                        type="button"
+                        onClick={() => setCategoryDropdownOpen((o) => !o)}
+                        onBlur={() => setTimeout(() => setCategoryDropdownOpen(false), 150)}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none bg-white text-sm flex items-center justify-between"
+                      >
+                        <span>{eventForm.category}</span>
+                        <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${categoryDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {categoryDropdownOpen && (
+                        <ul className="absolute z-20 mt-1.5 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                          {EVENT_CATEGORY_OPTIONS.map((option) => (
+                            <li key={option}>
+                              <button
+                                type="button"
+                                onMouseDown={() => {
+                                  setEventForm({ ...eventForm, category: option });
+                                  setCategoryDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                                  eventForm.category === option ? 'bg-red-600 text-white font-semibold' : 'text-gray-700 hover:bg-red-50 hover:text-red-600'
+                                }`}
+                              >
+                                {option}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación / Lugar</label>
+                      <input
+                        type="text"
+                        required
+                        value={eventForm.location}
+                        onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
+                        placeholder="Ej. Salón de Actos, Paraná"
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                      <input
+                        type="date"
+                        required
+                        value={eventForm.date}
+                        onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Hora</label>
+                      <input
+                        type="text"
+                        required
+                        value={eventForm.time}
+                        onChange={(e) => setEventForm({ ...eventForm, time: e.target.value })}
+                        placeholder="Ej. 10:30 hs o 15:00 a 18:00 hs"
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Descripción del Evento</label>
+                    <textarea
+                      rows={4}
+                      value={eventForm.description}
+                      onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
+                      placeholder="Ingresa las condiciones del remate, temario de la charla, requisitos o detalles generales..."
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm resize-y"
+                    />
+                  </div>
+
+                  {/* Fotos del Evento */}
+                  <div className="space-y-4 pt-2">
+                    <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-100 pb-2">📷 Fotos del Evento</h3>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-2">Foto de portada <span className="text-red-500">*</span></label>
+                      <div className="flex items-center gap-3">
+                        {eventForm.imageUrl && (
+                          <div className="relative w-20 h-20 flex-shrink-0">
+                            <img src={eventForm.imageUrl} alt="Portada Evento" className="w-20 h-20 rounded-lg object-cover border border-gray-200" />
+                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">PORTADA</span>
+                          </div>
+                        )}
+                        <label className={`flex-1 flex flex-col items-center justify-center gap-1.5 border-2 border-dashed rounded-xl p-4 cursor-pointer transition-colors ${
+                          uploadingEventCover ? 'border-gray-200 bg-gray-50' : 'border-red-200 hover:border-red-400 hover:bg-red-50'
+                        }`}>
+                          {uploadingEventCover ? (
+                            <svg className="animate-spin w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                            </svg>
+                          )}
+                          <span className="text-xs text-gray-500">{uploadingEventCover ? 'Subiendo...' : eventForm.imageUrl ? 'Cambiar portada' : 'Subir foto de portada'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingEventCover}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              try {
+                                setUploadingEventCover(true);
+                                const url = await uploadToCloudinary(file);
+                                setEventForm((f) => ({ ...f, imageUrl: url }));
+                              } catch (err: any) {
+                                alert(err.message);
+                              } finally {
+                                setUploadingEventCover(false);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-2">
+                        Galería de fotos adicionales <span className="text-gray-400 font-normal">({eventForm.images.length} fotos)</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {eventForm.images.map((url, i) => (
+                          <div key={i} className="relative w-20 h-20">
+                            <img src={url} alt={`Galería ${i + 1}`} className="w-20 h-20 rounded-lg object-cover border border-gray-200" />
+                            <button
+                              type="button"
+                              onClick={() => setEventForm((f) => ({ ...f, images: f.images.filter((_, idx) => idx !== i) }))}
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+
+                        {eventForm.images.length < 9 && (
+                          <label className={`w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                            uploadingEventGallery ? 'border-gray-200 bg-gray-50' : 'border-gray-300 hover:border-red-400 hover:bg-red-50'
+                          }`}>
+                            {uploadingEventGallery ? (
+                              <svg className="animate-spin w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                              </svg>
+                            )}
+                            <span className="text-[10px] text-gray-400 mt-0.5">{uploadingEventGallery ? '...' : 'Agregar'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              disabled={uploadingEventGallery}
+                              onChange={async (e) => {
+                                const files = Array.from(e.target.files || []);
+                                if (!files.length) return;
+                                try {
+                                  setUploadingEventGallery(true);
+                                  const urls = await Promise.all(files.slice(0, 9 - eventForm.images.length).map(uploadToCloudinary));
+                                  setEventForm((f) => ({ ...f, images: [...f.images, ...urls] }));
+                                } catch (err: any) {
+                                  alert(err.message);
+                                } finally {
+                                  setUploadingEventGallery(false);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={eventFormStatus.loading}
+                    className="w-full bg-red-600 text-white font-medium py-2.5 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 mt-4 text-sm"
+                  >
+                    {eventFormStatus.loading ? 'Guardando...' : (editingEventId ? 'Actualizar Evento' : 'Publicar Evento')}
                   </button>
                 </form>
               </div>
@@ -750,7 +1193,6 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* Modal de confirmación global */}
       <ConfirmModal
         isOpen={modalConfig.isOpen}
         title={modalConfig.title}
