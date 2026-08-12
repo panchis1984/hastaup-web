@@ -63,7 +63,7 @@ export default function AdminDashboard() {
     title: '',
     message: '',
     confirmText: 'Aceptar',
-    type: 'info' as 'danger' | 'info',
+    type: 'info' as 'danger' | 'info' | 'success',
     onConfirm: () => { },
   });
 
@@ -75,17 +75,39 @@ export default function AdminDashboard() {
     };
   };
 
+  /**
+   * Carga de imágenes:
+   * Intenta subir la imagen a Cloudinary si están las variables configuradas.
+   * Si no están (entorno local), convierte el archivo a un Data URL Base64 para que se guarde
+   * y previsualice en local sin depender de Cloudinary.
+   */
   const uploadToCloudinary = async (file: File): Promise<string> => {
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-    if (!cloudName || !uploadPreset) throw new Error('Cloudinary no configurado. Agregá las variables de entorno.');
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('upload_preset', uploadPreset);
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: fd });
-    if (!res.ok) throw new Error('Error al subir imagen a Cloudinary');
-    const data = await res.json();
-    return data.secure_url as string;
+
+    if (!cloudName || !uploadPreset) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', uploadPreset);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error('Error al subir imagen a Cloudinary');
+      const data = await res.json();
+      return data.secure_url as string;
+    } catch (e) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    }
   };
 
   const fetchData = useCallback(async () => {
@@ -151,8 +173,20 @@ export default function AdminDashboard() {
     e.preventDefault();
     setFormStatus({ loading: true, error: '', success: false });
 
+    if (!form.title.trim()) {
+      setFormStatus({ loading: false, error: 'Por favor, ingresa el título del inmueble.', success: false });
+      return;
+    }
+    if (!form.location.trim()) {
+      setFormStatus({ loading: false, error: 'Por favor, ingresa la ubicación del inmueble.', success: false });
+      return;
+    }
+    if (!form.price) {
+      setFormStatus({ loading: false, error: 'Por favor, ingresa un precio válido.', success: false });
+      return;
+    }
     if (!form.imageUrl) {
-      setFormStatus({ loading: false, error: 'Debés subir al menos una foto de portada antes de guardar.', success: false });
+      setFormStatus({ loading: false, error: 'Debes seleccionar al menos una foto de portada para el inmueble.', success: false });
       return;
     }
 
@@ -167,8 +201,8 @@ export default function AdminDashboard() {
         imageUrl: form.imageUrl,
         images: form.images,
         details: {
-          bedrooms: Number(form.bedrooms),
-          bathrooms: Number(form.bathrooms),
+          bedrooms: Number(form.bedrooms || 0),
+          bathrooms: Number(form.bathrooms || 0),
         },
       };
 
@@ -229,7 +263,14 @@ export default function AdminDashboard() {
           if (!res.ok) throw new Error('No se pudo eliminar la propiedad');
           fetchData();
         } catch (err: any) {
-          alert(err.message);
+          setModalConfig({
+            isOpen: true,
+            title: 'Error',
+            message: err.message || 'Error al eliminar el inmueble.',
+            confirmText: 'Aceptar',
+            type: 'danger',
+            onConfirm: () => {},
+          });
         }
       },
     });
@@ -243,7 +284,14 @@ export default function AdminDashboard() {
       });
       if (!res.ok) {
         const errorData = await res.json();
-        alert(errorData.message || 'Error al actualizar el estado de destaque');
+        setModalConfig({
+          isOpen: true,
+          title: 'Aviso',
+          message: errorData.message || 'Error al actualizar el estado de destaque',
+          confirmText: 'Aceptar',
+          type: 'info',
+          onConfirm: () => {},
+        });
         return;
       }
       fetchData();
@@ -263,8 +311,24 @@ export default function AdminDashboard() {
     e.preventDefault();
     setEventFormStatus({ loading: true, error: '', success: false });
 
+    if (!eventForm.title.trim()) {
+      setEventFormStatus({ loading: false, error: 'Por favor, ingresa el título del evento.', success: false });
+      return;
+    }
+    if (!eventForm.location.trim()) {
+      setEventFormStatus({ loading: false, error: 'Por favor, ingresa la ubicación o lugar del evento.', success: false });
+      return;
+    }
+    if (!eventForm.date) {
+      setEventFormStatus({ loading: false, error: 'Por favor, selecciona la fecha del evento.', success: false });
+      return;
+    }
+    if (!eventForm.time) {
+      setEventFormStatus({ loading: false, error: 'Por favor, selecciona el horario del evento.', success: false });
+      return;
+    }
     if (!eventForm.imageUrl) {
-      setEventFormStatus({ loading: false, error: 'Debés subir al menos una foto de portada para el evento.', success: false });
+      setEventFormStatus({ loading: false, error: 'Debes seleccionar o subir al menos una foto de portada para el evento.', success: false });
       return;
     }
 
@@ -307,7 +371,6 @@ export default function AdminDashboard() {
     setEditingEventId(eventItem.id);
     setEventFormStatus({ loading: false, error: '', success: false });
 
-    // Formatear la fecha a YYYY-MM-DD para el input type="date"
     const dateFormatted = eventItem.date ? new Date(eventItem.date).toISOString().split('T')[0] : '';
 
     setEventForm({
@@ -339,7 +402,14 @@ export default function AdminDashboard() {
           if (!res.ok) throw new Error('No se pudo eliminar el evento');
           fetchData();
         } catch (err: any) {
-          alert(err.message);
+          setModalConfig({
+            isOpen: true,
+            title: 'Error',
+            message: err.message || 'Error al eliminar el evento.',
+            confirmText: 'Aceptar',
+            type: 'danger',
+            onConfirm: () => {},
+          });
         }
       },
     });
@@ -353,7 +423,14 @@ export default function AdminDashboard() {
       });
       if (!res.ok) {
         const errorData = await res.json();
-        alert(errorData.message || 'Error al actualizar destaque del evento');
+        setModalConfig({
+          isOpen: true,
+          title: 'Aviso',
+          message: errorData.message || 'Error al actualizar destaque del evento',
+          confirmText: 'Aceptar',
+          type: 'info',
+          onConfirm: () => {},
+        });
         return;
       }
       fetchData();
@@ -384,7 +461,14 @@ export default function AdminDashboard() {
           if (!res.ok) throw new Error('No se pudo eliminar el mensaje');
           fetchData();
         } catch (err: any) {
-          alert(err.message);
+          setModalConfig({
+            isOpen: true,
+            title: 'Error',
+            message: err.message || 'Error al eliminar el mensaje.',
+            confirmText: 'Aceptar',
+            type: 'danger',
+            onConfirm: () => {},
+          });
         }
       },
     });
@@ -457,31 +541,31 @@ export default function AdminDashboard() {
         <div className="flex flex-wrap border-b border-gray-200 mb-6 gap-4 sm:gap-6">
           <button
             onClick={() => { resetForm(); resetEventForm(); setActiveTab('properties'); }}
-            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'properties' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'properties' ? 'border-red-600 text-red-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             Inmuebles ({properties.length})
           </button>
           <button
             onClick={() => { resetForm(); resetEventForm(); setActiveTab('events'); }}
-            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'events' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'events' ? 'border-red-600 text-red-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             Eventos / Subastas ({events.length})
           </button>
           <button
             onClick={() => setActiveTab('messages')}
-            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'messages' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'messages' ? 'border-red-600 text-red-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             Mensajes ({messages.length})
           </button>
           <button
             onClick={() => { resetForm(); setActiveTab('new-property'); }}
-            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'new-property' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'new-property' ? 'border-red-600 text-red-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             {editingId ? 'Editar Inmueble' : '+ Agregar Inmueble'}
           </button>
           <button
             onClick={() => { resetEventForm(); setActiveTab('new-event'); }}
-            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'new-event' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'new-event' ? 'border-red-600 text-red-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             {editingEventId ? 'Editar Evento' : '+ Agregar Evento'}
           </button>
@@ -590,7 +674,7 @@ export default function AdminDashboard() {
                             </span>
                           </td>
                           <td className="p-4 text-gray-600 text-xs font-medium">
-                            {new Date(ev.date).toLocaleDateString('es-AR')} - {ev.time}
+                            {new Date(ev.date).toLocaleDateString('es-AR')} - {ev.time?.includes('hs') ? ev.time : `${ev.time} hs`}
                           </td>
                           <td className="p-4 text-gray-500">{ev.location}</td>
                           <td className="p-4 text-right space-x-2">
@@ -664,14 +748,20 @@ export default function AdminDashboard() {
                 </div>
 
                 {formStatus.success && (
-                  <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm">
-                    ¡Inmueble {editingId ? 'actualizado' : 'creado'} con éxito!
+                  <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm flex items-center gap-3">
+                    <svg className="w-5 h-5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>¡Inmueble {editingId ? 'actualizado' : 'creado'} con éxito!</span>
                   </div>
                 )}
 
                 {formStatus.error && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
-                    {formStatus.error}
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-3">
+                    <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>{formStatus.error}</span>
                   </div>
                 )}
 
@@ -845,7 +935,7 @@ export default function AdminDashboard() {
                               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                             </svg>
                           )}
-                          <span className="text-xs text-gray-500">{uploadingCover ? 'Subiendo...' : form.imageUrl ? 'Cambiar portada' : 'Subir foto de portada'}</span>
+                          <span className="text-xs text-gray-500">{uploadingCover ? 'Cargando imagen...' : form.imageUrl ? 'Cambiar portada' : 'Seleccionar foto de portada'}</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -859,7 +949,7 @@ export default function AdminDashboard() {
                                 const url = await uploadToCloudinary(file);
                                 setForm((f) => ({ ...f, imageUrl: url }));
                               } catch (err: any) {
-                                alert(err.message);
+                                setFormStatus({ loading: false, error: 'Error al procesar la imagen.', success: false });
                               } finally {
                                 setUploadingCover(false);
                                 e.target.value = '';
@@ -919,7 +1009,7 @@ export default function AdminDashboard() {
                                   const urls = await Promise.all(files.slice(0, 9 - form.images.length).map(uploadToCloudinary));
                                   setForm((f) => ({ ...f, images: [...f.images, ...urls] }));
                                 } catch (err: any) {
-                                  alert(err.message);
+                                  setFormStatus({ loading: false, error: 'Error al procesar imágenes adicionales.', success: false });
                                 } finally {
                                   setUploadingGallery(false);
                                   e.target.value = '';
@@ -958,20 +1048,28 @@ export default function AdminDashboard() {
                 </div>
 
                 {eventFormStatus.success && (
-                  <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm">
-                    ¡Evento {editingEventId ? 'actualizado' : 'creado'} con éxito!
+                  <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm flex items-center gap-3">
+                    <svg className="w-5 h-5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>¡Evento {editingEventId ? 'actualizado' : 'creado'} con éxito!</span>
                   </div>
                 )}
 
                 {eventFormStatus.error && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
-                    {eventFormStatus.error}
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-3">
+                    <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>{eventFormStatus.error}</span>
                   </div>
                 )}
 
                 <form onSubmit={handleSubmitEvent} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Título del Evento</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Título del Evento <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       required
@@ -984,7 +1082,9 @@ export default function AdminDashboard() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Categoría <span className="text-red-500">*</span>
+                      </label>
                       <button
                         type="button"
                         onClick={() => setCategoryDropdownOpen((o) => !o)}
@@ -1020,7 +1120,9 @@ export default function AdminDashboard() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación / Lugar</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Ubicación / Lugar <span className="text-red-500">*</span>
+                      </label>
                       <input
                         type="text"
                         required
@@ -1034,24 +1136,27 @@ export default function AdminDashboard() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Fecha <span className="text-red-500">*</span>
+                      </label>
                       <input
                         type="date"
                         required
                         value={eventForm.date}
                         onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm"
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm bg-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Hora</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Horario del Evento <span className="text-red-500">*</span>
+                      </label>
                       <input
-                        type="text"
+                        type="time"
                         required
                         value={eventForm.time}
                         onChange={(e) => setEventForm({ ...eventForm, time: e.target.value })}
-                        placeholder="Ej. 10:30 hs o 15:00 a 18:00 hs"
-                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm"
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm bg-white font-medium text-gray-800"
                       />
                     </div>
                   </div>
@@ -1092,7 +1197,9 @@ export default function AdminDashboard() {
                               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                             </svg>
                           )}
-                          <span className="text-xs text-gray-500">{uploadingEventCover ? 'Subiendo...' : eventForm.imageUrl ? 'Cambiar portada' : 'Subir foto de portada'}</span>
+                          <span className="text-xs text-gray-500">
+                            {uploadingEventCover ? 'Cargando imagen...' : eventForm.imageUrl ? 'Cambiar portada' : 'Seleccionar foto de portada'}
+                          </span>
                           <input
                             type="file"
                             accept="image/*"
@@ -1106,7 +1213,7 @@ export default function AdminDashboard() {
                                 const url = await uploadToCloudinary(file);
                                 setEventForm((f) => ({ ...f, imageUrl: url }));
                               } catch (err: any) {
-                                alert(err.message);
+                                setEventFormStatus({ loading: false, error: 'Error al procesar la imagen.', success: false });
                               } finally {
                                 setUploadingEventCover(false);
                                 e.target.value = '';
@@ -1166,7 +1273,7 @@ export default function AdminDashboard() {
                                   const urls = await Promise.all(files.slice(0, 9 - eventForm.images.length).map(uploadToCloudinary));
                                   setEventForm((f) => ({ ...f, images: [...f.images, ...urls] }));
                                 } catch (err: any) {
-                                  alert(err.message);
+                                  setEventFormStatus({ loading: false, error: 'Error al procesar imágenes adicionales.', success: false });
                                 } finally {
                                   setUploadingEventGallery(false);
                                   e.target.value = '';

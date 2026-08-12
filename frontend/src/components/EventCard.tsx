@@ -61,7 +61,7 @@ export default function EventCard({
             </div>
             <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-100">
               <span>⏰</span>
-              <span>{time}</span>
+              <span>{time.includes('hs') ? time : `${time} hs`}</span>
             </div>
           </div>
         </div>

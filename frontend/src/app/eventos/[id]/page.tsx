@@ -123,7 +123,7 @@ export default function EventDetailPage() {
                     🗓️ {formattedDate}
                   </span>
                   <span className="flex items-center gap-1.5 font-medium text-gray-800 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
-                    ⏰ {event.time}
+                    ⏰ {event.time?.includes('hs') ? event.time : `${event.time} hs`}
                   </span>
                 </div>
 
