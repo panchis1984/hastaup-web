@@ -28,11 +28,12 @@ export class CreateEventDto {
   })
   category?: string;
 
-  @IsUrl({}, { message: 'La URL de la imagen principal no es válida' })
+  @IsString({ message: 'La imagen principal debe ser una cadena válida' })
+  @IsNotEmpty({ message: 'La foto de portada es obligatoria' })
   imageUrl!: string;
 
   @IsOptional()
   @IsArray()
-  @IsUrl({}, { each: true })
+  @IsString({ each: true })
   images?: string[];
 }

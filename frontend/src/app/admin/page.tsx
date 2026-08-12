@@ -238,7 +238,13 @@ export default function AdminDashboard() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error('Error al guardar la propiedad');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const msg = Array.isArray(errorData.message)
+          ? errorData.message.join(', ')
+          : (errorData.message || 'Error al guardar la propiedad');
+        throw new Error(msg);
+      }
 
       setFormStatus({ loading: false, error: '', success: true });
       resetForm();
@@ -376,7 +382,13 @@ export default function AdminDashboard() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error('Error al guardar el evento');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const msg = Array.isArray(errorData.message)
+          ? errorData.message.join(', ')
+          : (errorData.message || 'Error al guardar el evento');
+        throw new Error(msg);
+      }
 
       setEventFormStatus({ loading: false, error: '', success: true });
       resetEventForm();

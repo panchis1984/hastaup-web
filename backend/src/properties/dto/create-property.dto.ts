@@ -31,11 +31,12 @@ export class CreatePropertyDto {
   @IsObject({ message: 'Los detalles deben ser un objeto (habitaciones, baños, etc.)' })
   details!: Record<string, any>;
 
-  @IsUrl({}, { message: 'La URL de la imagen no es válida' })
+  @IsString({ message: 'La imagen debe ser una cadena válida' })
+  @IsNotEmpty({ message: 'La foto de portada es obligatoria' })
   imageUrl!: string;
 
   @IsOptional()
   @IsArray()
-  @IsUrl({}, { each: true })
+  @IsString({ each: true })
   images?: string[];
 }
