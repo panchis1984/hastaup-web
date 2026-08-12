@@ -18,6 +18,7 @@ export class EventsService {
         category: createEventDto.category || 'Subasta',
         imageUrl: createEventDto.imageUrl,
         images: createEventDto.images || [],
+        links: createEventDto.links || [],
       },
     });
   }

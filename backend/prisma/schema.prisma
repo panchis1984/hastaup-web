@@ -55,6 +55,7 @@ model Event {
   category    String   @default("Subasta") // "Subasta", "Charla", "Capacitación", "Exhibición", "Evento"
   imageUrl    String
   images      String[]
+  links       String[] @default([])
   featured    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

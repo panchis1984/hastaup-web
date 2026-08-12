@@ -136,6 +136,43 @@ export default function EventDetailPage() {
                     </p>
                   </div>
                 )}
+
+                {/* Links del Evento */}
+                {Array.isArray(event.links) && event.links.length > 0 && (
+                  <div className="pt-6 border-t border-gray-100">
+                    <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                      Links del Evento
+                    </h3>
+                    <div className="space-y-2.5">
+                      {event.links.map((link: string, idx: number) => {
+                        const href = link.startsWith('http://') || link.startsWith('https://') ? link : `https://${link}`;
+                        return (
+                          <a
+                            key={idx}
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between p-3.5 bg-red-50/60 hover:bg-red-50 border border-red-100 rounded-xl transition-all group text-sm font-medium text-red-700 hover:text-red-800 shadow-xs"
+                          >
+                            <span className="flex items-center gap-2.5 truncate">
+                              <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+                              <span className="truncate">{link}</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 group-hover:translate-x-0.5 transition-transform flex-shrink-0">
+                              Abrir enlace
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

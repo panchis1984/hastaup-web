@@ -43,6 +43,7 @@ export default function AdminDashboard() {
     category: 'Subasta',
     imageUrl: '',
     images: [] as string[],
+    links: [] as string[],
   });
   const [uploadingEventCover, setUploadingEventCover] = useState(false);
   const [uploadingEventGallery, setUploadingEventGallery] = useState(false);
@@ -368,6 +369,7 @@ export default function AdminDashboard() {
         category: eventForm.category,
         imageUrl: eventForm.imageUrl,
         images: eventForm.images,
+        links: eventForm.links.filter((l) => l.trim() !== ''),
       };
 
       const url = editingEventId
@@ -414,6 +416,7 @@ export default function AdminDashboard() {
       category: eventItem.category || 'Subasta',
       imageUrl: eventItem.imageUrl,
       images: Array.isArray(eventItem.images) ? eventItem.images : [],
+      links: Array.isArray(eventItem.links) ? eventItem.links : [],
     });
     setActiveTab('new-event');
   };
@@ -474,7 +477,7 @@ export default function AdminDashboard() {
   const resetEventForm = () => {
     setEditingEventId(null);
     setEventFormStatus({ loading: false, error: '', success: false });
-    setEventForm({ title: '', description: '', date: '', time: '', location: '', category: 'Subasta', imageUrl: '', images: [] });
+    setEventForm({ title: '', description: '', date: '', time: '', location: '', category: 'Subasta', imageUrl: '', images: [], links: [] });
   };
 
   const confirmDeleteMessage = (id: string) => {
@@ -1315,6 +1318,57 @@ export default function AdminDashboard() {
                           </label>
                         )}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Links del Evento */}
+                  <div className="space-y-3 pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-sm font-semibold text-gray-700">
+                        🔗 Links del Evento <span className="text-gray-400 font-normal text-xs">(Bases, PDF, Transmisión, etc.)</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setEventForm((f) => ({ ...f, links: [...f.links, ''] }))}
+                        className="text-xs font-semibold text-red-600 hover:text-red-700 flex items-center gap-1 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition-colors"
+                      >
+                        + Agregar Enlace
+                      </button>
+                    </div>
+
+                    {eventForm.links.length === 0 && (
+                      <p className="text-xs text-gray-400 italic">No hay links agregados. Presiona "+ Agregar Enlace" para incorporar uno.</p>
+                    )}
+
+                    <div className="space-y-2">
+                      {eventForm.links.map((link, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={link}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setEventForm((f) => {
+                                const nextLinks = [...f.links];
+                                nextLinks[idx] = val;
+                                return { ...f, links: nextLinks };
+                              });
+                            }}
+                            placeholder="Ej. https://ejemplo.com/bases.pdf o Transmisión en Vivo"
+                            className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-600 focus:outline-none text-sm bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setEventForm((f) => ({ ...f, links: f.links.filter((_, i) => i !== idx) }))}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                            title="Eliminar enlace"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
 

@@ -36,4 +36,9 @@ export class CreateEventDto {
   @IsArray()
   @IsString({ each: true })
   images?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  links?: string[];
 }
