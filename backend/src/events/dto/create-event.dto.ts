@@ -39,6 +39,5 @@ export class CreateEventDto {
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  links?: string[];
+  links?: any[];
 }

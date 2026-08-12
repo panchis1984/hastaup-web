@@ -147,8 +147,12 @@ export default function EventDetailPage() {
                       Links del Evento
                     </h3>
                     <div className="space-y-2.5">
-                      {event.links.map((link: string, idx: number) => {
-                        const href = link.startsWith('http://') || link.startsWith('https://') ? link : `https://${link}`;
+                      {event.links.map((item: any, idx: number) => {
+                        const rawUrl = typeof item === 'object' ? (item.url || '') : item;
+                        if (!rawUrl) return null;
+                        const title = (typeof item === 'object' && item.title) ? item.title : rawUrl;
+                        const href = rawUrl.startsWith('http://') || rawUrl.startsWith('https://') ? rawUrl : `https://${rawUrl}`;
+
                         return (
                           <a
                             key={idx}
@@ -157,9 +161,9 @@ export default function EventDetailPage() {
                             rel="noopener noreferrer"
                             className="flex items-center justify-between p-3.5 bg-red-50/60 hover:bg-red-50 border border-red-100 rounded-xl transition-all group text-sm font-medium text-red-700 hover:text-red-800 shadow-xs"
                           >
-                            <span className="flex items-center gap-2.5 truncate">
+                            <span className="flex items-center gap-2.5 truncate font-semibold">
                               <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
-                              <span className="truncate">{link}</span>
+                              <span className="truncate">{title}</span>
                             </span>
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 group-hover:translate-x-0.5 transition-transform flex-shrink-0">
                               Abrir enlace
