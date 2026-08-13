@@ -1,5 +1,9 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { getUserSavedItems, toggleSavedEventApi } from '@/utils/userActions';
 
 interface EventCardProps {
   id: string;
@@ -20,15 +24,49 @@ export default function EventCard({
   imageUrl,
   category,
 }: EventCardProps) {
+  const router = useRouter();
+  const [isSaved, setIsSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const formattedDate = new Date(date).toLocaleDateString('es-AR', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
 
+  const checkSavedStatus = () => {
+    const { savedEventIds } = getUserSavedItems();
+    setIsSaved(savedEventIds.includes(id));
+  };
+
+  useEffect(() => {
+    checkSavedStatus();
+
+    const handleUpdate = () => checkSavedStatus();
+    window.addEventListener('user-favorites-updated', handleUpdate);
+    return () => window.removeEventListener('user-favorites-updated', handleUpdate);
+  }, [id]);
+
+  const handleToggleSaved = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (loading) return;
+    setLoading(true);
+
+    const result = await toggleSavedEventApi(id);
+
+    if (result.requireLogin) {
+      router.push('/login');
+    } else if (result.success && result.isSaved !== undefined) {
+      setIsSaved(result.isSaved);
+    }
+    setLoading(false);
+  };
+
   return (
     <Link href={`/eventos/${id}`} className="group block">
-      <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full">
+      <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full relative">
         {/* Foto de portada con badge */}
         <div className="relative h-52 w-full overflow-hidden bg-gray-200">
           <img
@@ -39,6 +77,26 @@ export default function EventCard({
           <span className="absolute top-3 left-3 bg-red-600/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
             {category}
           </span>
+
+          {/* Botón Guardar Evento */}
+          <button
+            type="button"
+            onClick={handleToggleSaved}
+            disabled={loading}
+            className={`absolute top-3 right-3 p-2 rounded-full shadow-md backdrop-blur-md transition-all duration-200 z-10 active:scale-90 ${
+              isSaved
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-white/80 text-gray-400 hover:text-red-600 hover:bg-white'
+            }`}
+            title={isSaved ? 'Quitar de eventos guardados' : 'Guardar evento'}
+          >
+            <svg
+              className="w-4 h-4 transition-transform duration-200 fill-current"
+              viewBox="0 0 24 24"
+            >
+              <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" />
+            </svg>
+          </button>
         </div>
 
         {/* Info del evento */}

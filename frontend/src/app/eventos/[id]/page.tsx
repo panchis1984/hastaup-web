@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import EventImageGallery from '@/components/EventImageGallery';
+import { getUserSavedItems, toggleSavedEventApi } from '@/utils/userActions';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -13,6 +14,8 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [whatsappMessage, setWhatsappMessage] = useState('');
+  const [isSaved, setIsSaved] = useState(false);
+  const [savedLoading, setSavedLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -42,7 +45,31 @@ export default function EventDetailPage() {
     };
 
     fetchEventDetail();
+
+    const checkSaved = () => {
+      if (typeof id === 'string') {
+        const { savedEventIds } = getUserSavedItems();
+        setIsSaved(savedEventIds.includes(id));
+      }
+    };
+    checkSaved();
+
+    window.addEventListener('user-favorites-updated', checkSaved);
+    return () => window.removeEventListener('user-favorites-updated', checkSaved);
   }, [id]);
+
+  const handleToggleSaved = async () => {
+    if (!id || typeof id !== 'string' || savedLoading) return;
+    setSavedLoading(true);
+
+    const result = await toggleSavedEventApi(id);
+    if (result.requireLogin) {
+      router.push('/login');
+    } else if (result.success && result.isSaved !== undefined) {
+      setIsSaved(result.isSaved);
+    }
+    setSavedLoading(false);
+  };
 
   const handleWhatsAppRedirect = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,13 +110,30 @@ export default function EventDetailPage() {
   return (
     <main className="min-h-screen bg-yellow-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-        {/* Botón Volver */}
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-red-600 mb-6 transition-colors"
-        >
-          ← Volver a eventos
-        </button>
+        {/* Header superior: Volver + Botón Guardar Evento */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-red-600 transition-colors"
+          >
+            ← Volver a eventos
+          </button>
+
+          <button
+            onClick={handleToggleSaved}
+            disabled={savedLoading}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all border active:scale-95 ${
+              isSaved
+                ? 'bg-red-600 text-white border-red-600 hover:bg-red-700'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <svg className={`w-4 h-4 ${isSaved ? 'fill-white' : 'fill-gray-400'}`} viewBox="0 0 24 24">
+              <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" />
+            </svg>
+            {isSaved ? 'Evento Guardado' : 'Guardar Evento'}
+          </button>
+        </div>
 
         {/* Grid Principal */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

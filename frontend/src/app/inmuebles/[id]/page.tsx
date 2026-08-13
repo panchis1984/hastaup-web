@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PropertyImageGallery from '@/components/PropertyImageGallery';
+import { getUserSavedItems, toggleFavoritePropertyApi } from '@/utils/userActions';
 
 export default function PropertyDetailPage() {
   const params = useParams();
@@ -13,6 +14,8 @@ export default function PropertyDetailPage() {
   const [property, setProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [whatsappMessage, setWhatsappMessage] = useState('');
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -36,7 +39,31 @@ export default function PropertyDetailPage() {
     };
 
     fetchPropertyDetail();
+
+    const checkFav = () => {
+      if (typeof id === 'string') {
+        const { favoritePropertyIds } = getUserSavedItems();
+        setIsFavorite(favoritePropertyIds.includes(id));
+      }
+    };
+    checkFav();
+
+    window.addEventListener('user-favorites-updated', checkFav);
+    return () => window.removeEventListener('user-favorites-updated', checkFav);
   }, [id]);
+
+  const handleToggleFavorite = async () => {
+    if (!id || typeof id !== 'string' || favoriteLoading) return;
+    setFavoriteLoading(true);
+
+    const result = await toggleFavoritePropertyApi(id);
+    if (result.requireLogin) {
+      router.push('/login');
+    } else if (result.success && result.isFavorite !== undefined) {
+      setIsFavorite(result.isFavorite);
+    }
+    setFavoriteLoading(false);
+  };
 
   const handleWhatsAppRedirect = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,13 +97,30 @@ export default function PropertyDetailPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-        {/* Botón Volver */}
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-red-600 mb-6 transition-colors"
-        >
-          ← Volver atrás
-        </button>
+        {/* Header superior: Volver + Botón Favorito */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-red-600 transition-colors"
+          >
+            ← Volver atrás
+          </button>
+
+          <button
+            onClick={handleToggleFavorite}
+            disabled={favoriteLoading}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all border active:scale-95 ${
+              isFavorite
+                ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <svg className={`w-4 h-4 ${isFavorite ? 'fill-red-600' : 'fill-gray-400'}`} viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+            {isFavorite ? 'En tus Favoritos' : 'Guardar en Favoritos'}
+          </button>
+        </div>
 
         {/* Grid Principal */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

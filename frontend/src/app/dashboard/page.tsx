@@ -7,6 +7,7 @@ import PropertyCard from '@/components/PropertyCard';
 import EventCard from '@/components/EventCard';
 import ConfirmModal from '@/components/ConfirmModal';
 import { isValidEmail, isValidCuit } from '@/utils/validators';
+import { toggleFavoritePropertyApi, toggleSavedEventApi } from '@/utils/userActions';
 
 const DEFAULT_AVATAR = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNTAiIGZpbGw9IiNFNUU3RUIiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIyMCIgZmlsbD0iIzlDQTNBRiIvPjxwYXRoIGQ9Ik0xNiA4OEMxNiA2OS4yMjIzIDMxLjIyMjMgNTQgNTAgNTRDNjguNzc3NyA1NCA4NCA2OS4yMjIzIDg0IDg4SDE2WiIgZmlsbD0iIzlDQTNBRiIvPjwvc3ZnPg==';
 const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024; // Límite de 2 MB
@@ -227,39 +228,17 @@ export default function UserDashboard() {
 
   // Quitar inmueble de favoritos
   const handleRemoveFavoriteProperty = async (propertyId: string) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/favorites/property/${propertyId}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        setFavoriteProperties((prev) => prev.filter((p) => p.id !== propertyId));
-      }
-    } catch (err) {
-      console.error(err);
+    const res = await toggleFavoritePropertyApi(propertyId);
+    if (res.success) {
+      setFavoriteProperties((prev) => prev.filter((p) => p.id !== propertyId));
     }
   };
 
   // Quitar evento guardado
   const handleRemoveSavedEvent = async (eventId: string) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/favorites/event/${eventId}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        setSavedEvents((prev) => prev.filter((e) => e.id !== eventId));
-      }
-    } catch (err) {
-      console.error(err);
+    const res = await toggleSavedEventApi(eventId);
+    if (res.success) {
+      setSavedEvents((prev) => prev.filter((e) => e.id !== eventId));
     }
   };
 
