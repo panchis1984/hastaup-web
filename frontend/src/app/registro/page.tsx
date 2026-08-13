@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ConfirmModal from '@/components/ConfirmModal';
+import { isValidEmail, isValidCuit } from '@/utils/validators';
 
 // Beneficios que se muestran en el panel derecho
 const BENEFITS = [
@@ -59,6 +60,32 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError('');
+
+    // Validar formato de email
+    if (!isValidEmail(form.email)) {
+      setModal({
+        isOpen: true,
+        title: 'Correo Inválido',
+        message: 'Por favor ingresá un correo electrónico con formato válido (ej. usuario@ejemplo.com).',
+        type: 'danger',
+        showCancel: false,
+        onConfirm: () => {},
+      });
+      return;
+    }
+
+    // Validar CUIT oficial AFIP si se proporciona
+    if (form.cuit && form.cuit.trim() !== '' && !isValidCuit(form.cuit)) {
+      setModal({
+        isOpen: true,
+        title: 'CUIT / CUIL Inválido',
+        message: 'El CUIT/CUIL ingresado no es válido según el algoritmo oficial de AFIP (Módulo 11). Por favor verifica los 11 dígitos.',
+        type: 'danger',
+        showCancel: false,
+        onConfirm: () => {},
+      });
+      return;
+    }
 
     // Validar que las contraseñas coincidan antes de enviar
     if (form.password !== form.confirmPassword) {

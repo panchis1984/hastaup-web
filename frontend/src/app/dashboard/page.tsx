@@ -6,13 +6,14 @@ import Link from 'next/link';
 import PropertyCard from '@/components/PropertyCard';
 import EventCard from '@/components/EventCard';
 import ConfirmModal from '@/components/ConfirmModal';
+import { isValidEmail, isValidCuit } from '@/utils/validators';
 
 const DEFAULT_AVATAR = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNTAiIGZpbGw9IiNFNUU3RUIiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIyMCIgZmlsbD0iIzlDQTNBRiIvPjxwYXRoIGQ9Ik0xNiA4OEMxNiA2OS4yMjIzIDMxLjIyMjMgNTQgNTAgNTRDNjguNzc3NyA1NCA4NCA2OS4yMjIzIDg0IDg4SDE2WiIgZmlsbD0iIzlDQTNBRiIvPjwvc3ZnPg==';
 const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024; // Límite de 2 MB
 
 export default function UserDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'profile' | 'favorites' | 'events'>('profile');
+  const [activeTab, setActiveTab] = useState<'favorites' | 'events' | 'profile'>('favorites');
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -129,6 +130,32 @@ export default function UserDashboard() {
     e.preventDefault();
     const token = localStorage.getItem('token');
     if (!token) return;
+
+    // Validar formato de email
+    if (!isValidEmail(profileForm.email)) {
+      setModal({
+        isOpen: true,
+        title: 'Correo Inválido',
+        message: 'Por favor ingresá un correo electrónico con formato válido (ej. usuario@ejemplo.com).',
+        type: 'danger',
+        showCancel: false,
+        onConfirm: () => {},
+      });
+      return;
+    }
+
+    // Validar CUIT oficial AFIP si se proporciona
+    if (profileForm.cuit && profileForm.cuit.trim() !== '' && !isValidCuit(profileForm.cuit)) {
+      setModal({
+        isOpen: true,
+        title: 'CUIT / CUIL Inválido',
+        message: 'El CUIT/CUIL ingresado no es válido según el algoritmo oficial de AFIP (Módulo 11). Por favor verifica los 11 dígitos.',
+        type: 'danger',
+        showCancel: false,
+        onConfirm: () => {},
+      });
+      return;
+    }
 
     setSavingProfile(true);
 
@@ -299,19 +326,8 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          {/* Navegación por pestañas */}
+          {/* Navegación por pestañas (Perfil al final) */}
           <div className="flex border-b border-gray-200 mt-8 gap-2 sm:gap-6 overflow-x-auto">
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`py-3 px-3 sm:px-4 text-sm font-bold border-b-2 whitespace-nowrap transition-colors flex items-center gap-2 ${
-                activeTab === 'profile'
-                  ? 'border-red-600 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
-              }`}
-            >
-              ⚙️ Mi Perfil y Datos
-            </button>
-
             <button
               onClick={() => setActiveTab('favorites')}
               className={`py-3 px-3 sm:px-4 text-sm font-bold border-b-2 whitespace-nowrap transition-colors flex items-center gap-2 ${
@@ -332,6 +348,17 @@ export default function UserDashboard() {
               }`}
             >
               📌 Eventos Guardados ({savedEvents.length})
+            </button>
+
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`py-3 px-3 sm:px-4 text-sm font-bold border-b-2 whitespace-nowrap transition-colors flex items-center gap-2 ${
+                activeTab === 'profile'
+                  ? 'border-red-600 text-red-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
+              }`}
+            >
+              ⚙️ Mi Perfil y Datos
             </button>
           </div>
         </div>

@@ -3,12 +3,18 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { isValidCuit, isValidEmail } from '../common/validators';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto) {
+    // 0. Validar formato de Email
+    if (!isValidEmail(createUserDto.email)) {
+      throw new BadRequestException('El formato del correo electrónico no es válido');
+    }
+
     // 1. Verificar si el correo ya existe
     const existingUser = await this.prisma.user.findUnique({
       where: { email: createUserDto.email },
@@ -18,8 +24,12 @@ export class UsersService {
       throw new BadRequestException('El correo electrónico ya está registrado');
     }
 
-    // 2. Verificar si el CUIT ya existe si fue proporcionado
+    // 2. Validar CUIT según algoritmo AFIP (Módulo 11) si fue proporcionado
     if (createUserDto.cuit && createUserDto.cuit.trim() !== '') {
+      if (!isValidCuit(createUserDto.cuit)) {
+        throw new BadRequestException('El CUIT/CUIL ingresado no es válido según el formato oficial de AFIP');
+      }
+
       const existingCuit = await this.prisma.user.findUnique({
         where: { cuit: createUserDto.cuit.trim() },
       });
@@ -94,23 +104,35 @@ export class UsersService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    // Verificar CUIT único si se intenta cambiar
-    if (updateUserDto.cuit && updateUserDto.cuit.trim() !== '' && updateUserDto.cuit.trim() !== user.cuit) {
-      const existingCuit = await this.prisma.user.findUnique({
-        where: { cuit: updateUserDto.cuit.trim() },
-      });
-      if (existingCuit && existingCuit.id !== userId) {
-        throw new BadRequestException('El CUIT ingresado ya pertenece a otro usuario');
+    // Validar CUIT si se modifica
+    if (updateUserDto.cuit !== undefined && updateUserDto.cuit !== null && updateUserDto.cuit.trim() !== '') {
+      if (!isValidCuit(updateUserDto.cuit)) {
+        throw new BadRequestException('El CUIT/CUIL ingresado no es válido según el formato oficial de AFIP');
+      }
+
+      if (updateUserDto.cuit.trim() !== user.cuit) {
+        const existingCuit = await this.prisma.user.findUnique({
+          where: { cuit: updateUserDto.cuit.trim() },
+        });
+        if (existingCuit && existingCuit.id !== userId) {
+          throw new BadRequestException('El CUIT ingresado ya pertenece a otro usuario');
+        }
       }
     }
 
-    // Verificar Email único si se intenta cambiar
-    if (updateUserDto.email && updateUserDto.email !== user.email) {
-      const existingEmail = await this.prisma.user.findUnique({
-        where: { email: updateUserDto.email },
-      });
-      if (existingEmail && existingEmail.id !== userId) {
-        throw new BadRequestException('El correo electrónico ya pertenece a otro usuario');
+    // Validar Email si se modifica
+    if (updateUserDto.email !== undefined) {
+      if (!isValidEmail(updateUserDto.email)) {
+        throw new BadRequestException('El formato del correo electrónico no es válido');
+      }
+
+      if (updateUserDto.email !== user.email) {
+        const existingEmail = await this.prisma.user.findUnique({
+          where: { email: updateUserDto.email },
+        });
+        if (existingEmail && existingEmail.id !== userId) {
+          throw new BadRequestException('El correo electrónico ya pertenece a otro usuario');
+        }
       }
     }
 
