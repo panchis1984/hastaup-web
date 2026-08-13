@@ -106,7 +106,7 @@ export default function PropertyCard({
           <p className="text-gray-500 text-sm mt-1">{location}</p>
           
           <div className="mt-4 flex items-center justify-between">
-            <span className="text-xl font-extrabold text-gray-950">
+            <span className="text-xl font-extrabold text-gray-950 whitespace-nowrap">
               {currency === 'ARS' ? `$ ${price.toLocaleString()}` : `USD $ ${price.toLocaleString()}`}
             </span>
             <div className="flex items-center gap-3 text-gray-500 text-sm">

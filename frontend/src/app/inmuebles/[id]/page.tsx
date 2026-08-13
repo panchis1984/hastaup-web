@@ -145,7 +145,7 @@ export default function PropertyDetailPage() {
               <div className="p-6 sm:p-8">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">{property.title}</h1>
-                  <span className="text-2xl sm:text-3xl font-black text-red-600">
+                  <span className="text-2xl sm:text-3xl font-black text-red-600 whitespace-nowrap">
                     {property.currency === 'ARS' ? `$ ${property.price?.toLocaleString()}` : `USD $ ${property.price?.toLocaleString()}`}
                   </span>
                 </div>
