@@ -21,4 +21,4 @@ RUN test -f /app/dist/app.module.js || (echo "❌ dist/app.module.js no encontra
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx prisma db push && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/main.js"]
