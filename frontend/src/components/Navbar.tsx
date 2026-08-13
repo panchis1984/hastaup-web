@@ -43,15 +43,14 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
           
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center">
             <Image
               src="/logoNavbar.png"
               alt="Hasta Up Logo"
               width={140}
-              height={45}
+              height={50}
               priority
-              style={{ width: 'auto', height: 'auto' }}
-              className="object-contain cursor-pointer hover:opacity-90 transition-opacity"
+              className="h-11 w-auto object-contain cursor-pointer hover:opacity-90 transition-opacity"
             />
           </Link>
 
