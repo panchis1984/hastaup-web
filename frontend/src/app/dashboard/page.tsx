@@ -3,13 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
 import PropertyCard from '@/components/PropertyCard';
 import EventCard from '@/components/EventCard';
 import ConfirmModal from '@/components/ConfirmModal';
 
-const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200';
+const DEFAULT_AVATAR = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNTAiIGZpbGw9IiNFNUU3RUIiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIyMCIgZmlsbD0iIzlDQTNBRiIvPjxwYXRoIGQ9Ik0xNiA4OEMxNiA2OS4yMjIzIDMxLjIyMjMgNTQgNTAgNTRDNjguNzc3NyA1NCA4NCA2OS4yMjIzIDg0IDg4SDE2WiIgZmlsbD0iIzlDQTNBRiIvPjwvc3ZnPg==';
 const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024; // Límite de 2 MB
 
 export default function UserDashboard() {
@@ -240,22 +238,17 @@ export default function UserDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        <Navbar />
-        <div className="flex-1 flex items-center justify-center py-20">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm font-semibold text-gray-600">Cargando tu panel...</p>
-          </div>
+      <div className="flex-1 flex items-center justify-center py-20 bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-semibold text-gray-600">Cargando tu panel...</p>
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
-      <Navbar />
+    <div className="bg-gray-50 text-gray-800 py-6 sm:py-10">
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header del Dashboard */}
@@ -603,8 +596,6 @@ export default function UserDashboard() {
           </div>
         )}
       </main>
-
-      <Footer />
 
       <ConfirmModal
         isOpen={modal.isOpen}
