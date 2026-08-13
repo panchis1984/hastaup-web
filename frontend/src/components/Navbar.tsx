@@ -40,17 +40,17 @@ export default function Navbar() {
   return (
     <>
       <nav className="w-full bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 sticky top-0 z-50 transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20">
           
-          {/* Logo */}
+          {/* Logo (50% más grande) */}
           <Link href="/" className="flex items-center">
             <Image
               src="/logoNavbar.png"
               alt="Hasta Up Logo"
-              width={140}
-              height={50}
+              width={180}
+              height={65}
               priority
-              className="h-11 w-auto object-contain cursor-pointer hover:opacity-90 transition-opacity"
+              className="h-16 w-auto object-contain cursor-pointer hover:opacity-90 transition-opacity"
             />
           </Link>
 
@@ -157,7 +157,7 @@ export default function Navbar() {
 
         </div>
 
-        {/* Desplegable Mobile (Hamburguesa) */}
+        {/* Desplegable Mobile (Hamburguesa - Sin Íconos) */}
         {isMobileMenuOpen && (
           <div className="md:hidden bg-white border-b border-gray-200 px-4 pt-3 pb-6 space-y-3 shadow-lg">
             <Link
@@ -166,7 +166,7 @@ export default function Navbar() {
                 pathname === '/' ? 'bg-red-50 text-red-600' : 'text-gray-700 hover:bg-gray-50'
               }`}
             >
-              🏠 Inicio
+              Inicio
             </Link>
             <Link
               href="/inmuebles"
@@ -174,7 +174,7 @@ export default function Navbar() {
                 pathname.startsWith('/inmuebles') ? 'bg-red-50 text-red-600' : 'text-gray-700 hover:bg-gray-50'
               }`}
             >
-              🏢 Inmuebles
+              Inmuebles
             </Link>
             <Link
               href="/eventos"
@@ -182,7 +182,7 @@ export default function Navbar() {
                 pathname.startsWith('/eventos') ? 'bg-red-50 text-red-600' : 'text-gray-700 hover:bg-gray-50'
               }`}
             >
-              🎉 Eventos
+              Eventos
             </Link>
             <Link
               href="/nosotros"
@@ -190,7 +190,7 @@ export default function Navbar() {
                 pathname === '/nosotros' ? 'bg-red-50 text-red-600' : 'text-gray-700 hover:bg-gray-50'
               }`}
             >
-              👥 Nosotros
+              Nosotros
             </Link>
             <Link
               href="/contacto"
@@ -198,7 +198,7 @@ export default function Navbar() {
                 pathname === '/contacto' ? 'bg-red-50 text-red-600' : 'text-gray-700 hover:bg-gray-50'
               }`}
             >
-              📞 Contacto
+              Contacto
             </Link>
 
             {user?.role === 'ADMIN' && (
@@ -206,7 +206,7 @@ export default function Navbar() {
                 href="/admin"
                 className="block px-3 py-2.5 rounded-xl font-bold text-sm bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
               >
-                ⚙️ Panel Admin
+                Panel Admin
               </Link>
             )}
 
@@ -218,7 +218,7 @@ export default function Navbar() {
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-900 font-bold text-sm transition-colors"
                   >
                     <img
-                      src={user.avatarUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNTAiIGZpbGw9IiNFNUU3RUIiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIyMCIgZmlsbD0iIzlDQTNBRiIvPjxwYXRoIGQ9Ik0xNiA4OEMxNiA2OS4yMjIzIDMxLjIyMjMgNTQgNTAgNTRDNjguNzc3NyA1NCA4NCA2OS4yMjIzIDg0IDg4SDE2WiIgZmlsbD0iIzlDQTNBRiIvPjwvc3ZnPg=='}
+                      src={user.avatarUrl || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNTAiIGZpbGw9IiNFNUU3RUIiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIyMCIgZmlsbD0iIzlDQTNBRiIvPjxwYXRoIGQ9Ik0xNiA4OEMxNiA2OS4yMjIzIDMxLjIyMjMgNTQgNTAgNTRDNjguNzc3NyA1NCA8NCA2OS4yMjIzIDg0IDg4SDE2WiIgZmlsbD0iIzlDQTNBRiIvPjwvc3ZnPg=='}
                       alt={user.name || 'Perfil'}
                       className="w-7 h-7 rounded-full object-cover"
                     />
@@ -229,7 +229,7 @@ export default function Navbar() {
                     onClick={() => setShowLogoutModal(true)}
                     className="w-full text-left px-3 py-2.5 rounded-xl font-bold text-sm text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
                   >
-                    🚪 Cerrar Sesión
+                    Cerrar Sesión
                   </button>
                 </>
               ) : (
