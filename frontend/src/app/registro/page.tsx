@@ -31,7 +31,18 @@ const BENEFITS = [
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({
+    name: '',
+    lastName: '',
+    cuit: '',
+    phone: '',
+    city: '',
+    state: '',
+    country: 'Argentina',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
   const [loading, setLoading] = useState(false);
   const [passwordError, setPasswordError] = useState('');
 
@@ -127,25 +138,111 @@ export default function RegisterPage() {
         </div>
 
         {/* Formulario */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="reg-name" className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Nombre completo
-            </label>
-            <input
-              id="reg-name"
-              type="text"
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-blue-500 focus:outline-none text-sm bg-white transition-shadow hover:shadow-sm"
-              placeholder="Juan Pérez"
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="reg-name" className="block text-sm font-semibold text-gray-700 mb-1">
+                Nombre <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="reg-name"
+                type="text"
+                required
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm bg-white"
+                placeholder="Ej. Juan"
+              />
+            </div>
+            <div>
+              <label htmlFor="reg-lastname" className="block text-sm font-semibold text-gray-700 mb-1">
+                Apellido
+              </label>
+              <input
+                id="reg-lastname"
+                type="text"
+                value={form.lastName}
+                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm bg-white"
+                placeholder="Ej. Pérez"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="reg-cuit" className="block text-sm font-semibold text-gray-700 mb-1">
+                CUIT / CUIL <span className="text-gray-400 font-normal text-xs">(Único)</span>
+              </label>
+              <input
+                id="reg-cuit"
+                type="text"
+                value={form.cuit}
+                onChange={(e) => setForm({ ...form, cuit: e.target.value })}
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm bg-white"
+                placeholder="Ej. 20-12345678-9"
+              />
+            </div>
+            <div>
+              <label htmlFor="reg-phone" className="block text-sm font-semibold text-gray-700 mb-1">
+                Teléfono
+              </label>
+              <input
+                id="reg-phone"
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm bg-white"
+                placeholder="Ej. 3434123456"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label htmlFor="reg-city" className="block text-sm font-semibold text-gray-700 mb-1">
+                Localidad
+              </label>
+              <input
+                id="reg-city"
+                type="text"
+                value={form.city}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm bg-white"
+                placeholder="Paraná"
+              />
+            </div>
+            <div>
+              <label htmlFor="reg-state" className="block text-sm font-semibold text-gray-700 mb-1">
+                Provincia
+              </label>
+              <input
+                id="reg-state"
+                type="text"
+                value={form.state}
+                onChange={(e) => setForm({ ...form, state: e.target.value })}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm bg-white"
+                placeholder="Entre Ríos"
+              />
+            </div>
+            <div>
+              <label htmlFor="reg-country" className="block text-sm font-semibold text-gray-700 mb-1">
+                País
+              </label>
+              <input
+                id="reg-country"
+                type="text"
+                value={form.country}
+                onChange={(e) => setForm({ ...form, country: e.target.value })}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm bg-white"
+                placeholder="Argentina"
+              />
+            </div>
           </div>
 
           <div>
-            <label htmlFor="reg-email" className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Correo electrónico
+            <label htmlFor="reg-email" className="block text-sm font-semibold text-gray-700 mb-1">
+              Correo electrónico <span className="text-red-500">*</span>
             </label>
             <input
               id="reg-email"
@@ -153,52 +250,52 @@ export default function RegisterPage() {
               required
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:outline-none text-sm bg-white transition-shadow hover:shadow-sm"
-              placeholder="juan@example.com"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm bg-white"
+              placeholder="juan@ejemplo.com"
             />
           </div>
 
-          <div>
-            <label htmlFor="reg-password" className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Contraseña
-            </label>
-            <input
-              id="reg-password"
-              type="password"
-              required
-              value={form.password}
-              onChange={(e) => { setPasswordError(''); setForm({ ...form, password: e.target.value }); }}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:outline-none text-sm bg-white transition-shadow hover:shadow-sm"
-              placeholder="••••••••"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="reg-password" className="block text-sm font-semibold text-gray-700 mb-1">
+                Contraseña <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="reg-password"
+                type="password"
+                required
+                value={form.password}
+                onChange={(e) => { setPasswordError(''); setForm({ ...form, password: e.target.value }); }}
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none text-sm bg-white"
+                placeholder="••••••••"
+              />
+            </div>
+            <div>
+              <label htmlFor="reg-confirm-password" className="block text-sm font-semibold text-gray-700 mb-1">
+                Repetir contraseña <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="reg-confirm-password"
+                type="password"
+                required
+                value={form.confirmPassword}
+                onChange={(e) => { setPasswordError(''); setForm({ ...form, confirmPassword: e.target.value }); }}
+                className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:outline-none text-sm bg-white ${
+                  passwordError ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 focus:ring-red-500'
+                }`}
+                placeholder="••••••••"
+              />
+            </div>
           </div>
 
-          <div>
-            <label htmlFor="reg-confirm-password" className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Repetir contraseña
-            </label>
-            <input
-              id="reg-confirm-password"
-              type="password"
-              required
-              value={form.confirmPassword}
-              onChange={(e) => { setPasswordError(''); setForm({ ...form, confirmPassword: e.target.value }); }}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:outline-none text-sm bg-white transition-shadow hover:shadow-sm ${
-                passwordError
-                  ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
-                  : 'border-gray-200 focus:ring-red-500 focus:border-red-500'
-              }`}
-              placeholder="••••••••"
-            />
-            {passwordError && (
-              <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                {passwordError}
-              </p>
-            )}
-          </div>
+          {passwordError && (
+            <p className="text-xs text-red-600 flex items-center gap-1">
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {passwordError}
+            </p>
+          )}
 
           <button
             type="submit"

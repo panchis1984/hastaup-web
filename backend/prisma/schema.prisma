@@ -10,12 +10,22 @@ datasource db {
 
 // 2. Modelo de Usuario (Estructura rígida y segura)
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("USER") // "ADMIN" o "USER"
-  createdAt DateTime @default(now())
+  id                  String   @id @default(uuid())
+  name                String
+  lastName            String?  @default("")
+  cuit                String?  @unique
+  email               String   @unique
+  password            String
+  phone               String?  @default("")
+  city                String?  @default("")
+  state               String?  @default("")
+  country             String?  @default("Argentina")
+  avatarUrl           String?  @default("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200")
+  role                String   @default("USER") // "ADMIN" o "USER"
+  favoritePropertyIds String[] @default([])
+  savedEventIds       String[] @default([])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt @default(now())
 }
 
 // 3. Modelo de Inmueble (Estructura híbrida con JSONB)

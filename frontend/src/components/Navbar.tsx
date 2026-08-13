@@ -58,12 +58,23 @@ export default function Navbar() {
 
           {user ? (
             <li className="flex items-center gap-3 pl-2 border-l border-gray-200">
-              <span className="font-medium text-gray-700 hidden sm:inline">
-                Hola, <span className="font-bold text-gray-900">{user.name}</span>
-              </span>
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2 hover:bg-gray-100 px-2.5 py-1 rounded-lg transition"
+                title="Ir a mi panel"
+              >
+                <img
+                  src={user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'}
+                  alt={user.name || 'Perfil'}
+                  className="w-7 h-7 rounded-full object-cover border border-gray-300"
+                />
+                <span className="font-semibold text-gray-800 text-sm hidden sm:inline">
+                  Mi Panel
+                </span>
+              </Link>
               <button
                 onClick={() => setShowLogoutModal(true)}
-                className="px-3 py-1.5 font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition"
+                className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition"
               >
                 Cerrar Sesión
               </button>
