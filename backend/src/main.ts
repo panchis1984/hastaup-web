@@ -31,7 +31,8 @@ async function bootstrap() {
       if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ''))) {
         callback(null, true);
       } else {
-        callback(null, true); // fallback seguro
+        // Rechazar orígenes no autorizados
+        callback(new Error('Origen no permitido por la política de CORS'));
       }
     },
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],

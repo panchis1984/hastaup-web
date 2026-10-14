@@ -4,7 +4,9 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
+import { RolesGuard } from './roles.guard';
 import { PrismaModule } from '../prisma/prisma.module';
+import { getJwtSecret } from './jwt-secret';
 
 @Module({
   imports: [
@@ -12,13 +14,13 @@ import { PrismaModule } from '../prisma/prisma.module';
     PassportModule,
     JwtModule.registerAsync({
       useFactory: () => ({
-        secret: process.env.JWT_SECRET || 'fallback_secret',
+        secret: getJwtSecret(),
         signOptions: { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any },
       }),
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [JwtModule], // Exportamos JwtModule para que otros módulos puedan verificar tokens
+  providers: [AuthService, JwtStrategy, RolesGuard],
+  exports: [JwtModule, RolesGuard], // Exportamos para que otros módulos puedan verificar tokens y roles
 })
 export class AuthModule {}
